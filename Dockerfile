@@ -17,7 +17,7 @@ WORKDIR /usr/src/pomu
 COPY . .
 
 # build backend
-RUN go build -v -ldflags "-X main.GitHash=${GITHUB_SHA}"
+RUN ./build.sh
 
 FROM ubuntu:jammy
 
