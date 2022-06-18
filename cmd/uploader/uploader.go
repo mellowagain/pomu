@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"os"
 	"pomu/hls"
-	"pomu/s3"
 	"pomu/uploader"
+
+	pomuFs "pomu/fs"
 
 	"github.com/joho/godotenv"
 )
@@ -23,7 +24,6 @@ func writeFile(segments chan []byte, body io.ReadCloser) {
 	}
 
 	segments <- data
-
 }
 
 func main() {
@@ -39,19 +39,18 @@ func main() {
 
 	downloader := hls.NewDownloader()
 
-	s3, err := s3.New(os.Getenv("S3_BUCKET"))
-	if err != nil {
-		log.Fatalln("s3.New():", err)
-	}
+	fs := pomuFs.NewFilesystemFS("cmd/uploader/uploaded")
+
+	segmentWriter := uploader.NewSegmentWriter(fs, path)
 
 	segments := make(chan []byte, 100)
-	uploader := uploader.New(segments, path, s3, 10*1000*1000)
+	uploader := uploader.New(segments, segmentWriter, 10*1000*1000)
 	go downloader.Playlist(playlistUrl)
 	go uploader.ProcessSegments()
 
 	client := http.DefaultClient
 	for segment := range downloader.Segments {
-		fmt.Println("Got new segment", segment.Time, segment.Url)
+		fmt.Println("Got new segment", segment.Time)
 
 		req, err := http.NewRequest("GET", segment.Url, nil)
 		if err != nil {

@@ -1,38 +1,23 @@
 package uploader
 
-import (
-	"bytes"
-	"fmt"
-	"log"
-	"pomu/s3"
-)
+import "log"
 
 type Uploader struct {
 	segments  chan []byte
 	buffer    []byte
 	maxBuffer int
-	id        string
+	writer    SegmentWriter
 	segmentID int
-	s3        *s3.Client
 }
 
-func New(segments chan []byte, id string, s3 *s3.Client, maxBuffer int) *Uploader {
+func New(segments chan []byte, writer SegmentWriter, maxBuffer int) *Uploader {
 	return &Uploader{
 		segments:  segments,
 		buffer:    make([]byte, 0, maxBuffer),
 		maxBuffer: maxBuffer,
-		id:        id,
 		segmentID: 0,
-		s3:        s3,
+		writer:    writer,
 	}
-}
-
-func (up *Uploader) flushBuffer() {
-	segmentName := fmt.Sprintf("%s/%03d.ts", up.id, up.segmentID)
-	up.s3.Upload(segmentName, bytes.NewReader(up.buffer))
-	log.Println("Uploaded segment", segmentName)
-	up.segmentID += 1
-	up.buffer = []byte{}
 }
 
 func (up *Uploader) ProcessSegments() {
@@ -40,9 +25,14 @@ func (up *Uploader) ProcessSegments() {
 		up.buffer = append(up.buffer, segment...)
 		if len(up.buffer) > up.maxBuffer {
 			// Write this segment to S3
-			up.flushBuffer()
+			err := up.writer.write(up.segmentID, up.buffer)
+			if err != nil {
+				log.Println("Failed to write segment:", err)
+			}
+			up.segmentID += 1
+			up.buffer = []byte{}
 		}
 	}
 	// No more segments, upload what we have left
-	up.flushBuffer()
+	up.writer.write(up.segmentID, up.buffer)
 }
