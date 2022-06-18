@@ -24,7 +24,7 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 		return nil, false, errors.New("invalid url")
 	}
 
-	videoID := parseVideoID(url)
+	videoID := ParseVideoID(url)
 	quality, exists := qualitiesCache.Get(videoID)
 
 	if quality != nil && exists {
@@ -74,6 +74,10 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 			continue
 		}
 
+		if resolution == "audio" {
+			continue
+		}
+
 		qualities = append(qualities, VideoQuality{
 			Code:       code,
 			Resolution: resolution,
@@ -100,7 +104,7 @@ func isValidUrl(videoUrl string) bool {
 	return err == nil && len(parsedUrl.Scheme) > 0 && (hasYouTube || hasYouTuDotBe)
 }
 
-func parseVideoID(videoUrl string) string {
+func ParseVideoID(videoUrl string) string {
 	parsedUrl, _ := url.Parse(videoUrl)
 
 	videoId := strings.TrimPrefix(parsedUrl.Path, "/")
