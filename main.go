@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/joho/godotenv"
 	"log"
+	"net/http"
+	"os"
 )
 
 func main() {
@@ -13,4 +15,16 @@ func main() {
 	}
 
 	Connect()
+
+	address := os.Getenv("BIND_ADDRESS")
+
+	if len(address) <= 0 {
+		address = ":8080"
+	}
+
+	setupServer(address)
+}
+
+func setupServer(address string) {
+	log.Fatal(http.ListenAndServe(address, nil))
 }
