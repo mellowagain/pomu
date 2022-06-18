@@ -1,0 +1,4 @@
+github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da h1:oI5xCqsCo564l8iNU+DwB5epxmsaqB+rhGL0m5jtYqE=
+github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=
+github.com/kz26/m3u8 v0.0.0-20141106195857-e50ea99e3925 h1:c4fjwN9WYNvw61yTHlEnS24mkOwWDy/x9W3yubbublc=
+github.com/kz26/m3u8 v0.0.0-20141106195857-e50ea99e3925/go.mod h1:k4sM9T8mm1vDj7NVWtcHDEBbkvT0X81NYsgzaJ193S0=
