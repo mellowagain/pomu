@@ -38,7 +38,10 @@ func (dl *Client) playlistFrame(start time.Time, urlString string) (sleepDuratio
 		return 0, err
 	}
 	// Done with request body
-	resp.Body.Close()
+	err = resp.Body.Close()
+	if err != nil {
+		log.Fatalln("resp.Body.Close()", err)
+	}
 
 	switch playlist := playlist.(type) {
 	case *m3u8.MediaPlaylist:
