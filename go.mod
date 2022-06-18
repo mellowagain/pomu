@@ -3,6 +3,7 @@ module pomu
 go 1.18
 
 require (
+	github.com/aws/aws-sdk-go v1.44.37
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/hymkor/go-lazy v0.0.0-20220318030802-e1f012df1dc1
 	github.com/joho/godotenv v1.4.0
@@ -17,6 +18,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.0.0-20220520183353-fd19c99a87aa // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
