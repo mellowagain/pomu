@@ -136,14 +136,14 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	if reschedule {
 		if IsLivestreamStarted(videoMetadata) {
-			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, request); err != nil {
+			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, request, 0); err != nil {
 				http.Error(w, "failed to schedule and start recording job", http.StatusInternalServerError)
 				return
 			}
 
 			log.Printf("Livestream already started, starting recording immediatly")
 		} else {
-			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, request); err != nil {
+			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, request, 0); err != nil {
 				http.Error(w, "failed to schedule recording job", http.StatusInternalServerError)
 				return
 			}
