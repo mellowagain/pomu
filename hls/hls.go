@@ -3,8 +3,7 @@ package hls
 import (
 	"log"
 	"net/http"
-	"net/url"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/golang/groupcache/lru"
@@ -27,10 +26,8 @@ func (dl *Client) playlistFrame(start time.Time, urlString string) (sleepDuratio
 	if err != nil {
 		return 0, err
 	}
-	playlistUrl, err := url.Parse(urlString)
-	if err != nil {
-		return 0, err
-	}
+
+	request.Header.Set("User-Agent", os.Getenv("HTTP_USERAGENT"))
 
 	resp, err := dl.client.Do(request)
 	if err != nil {
@@ -46,33 +43,15 @@ func (dl *Client) playlistFrame(start time.Time, urlString string) (sleepDuratio
 	switch playlist := playlist.(type) {
 	case *m3u8.MediaPlaylist:
 		for _, v := range playlist.Segments {
-			var segmentUri string
-
 			if v == nil {
 				continue
 			}
 
-			if strings.HasPrefix(v.URI, "http") {
-				segmentUri, err = url.QueryUnescape(v.URI)
-				if err != nil {
-					return 0, err
-				}
-			} else {
-				segmentUrl, err := playlistUrl.Parse(v.URI)
-				if err != nil {
-					return 0, err
-				}
-				segmentUri, err = url.QueryUnescape(segmentUrl.String())
-				if err != nil {
-					return 0, err
-				}
-			}
-
 			// Check whether we have already downloaded this segment
-			if _, hit := dl.cache.Get(segmentUri); !hit {
-				dl.cache.Add(segmentUri, nil)
+			if _, hit := dl.cache.Get(v.URI); !hit {
+				dl.cache.Add(v.URI, nil)
 				dl.Segments <- &Segment{
-					segmentUri,
+					v.URI,
 					time.Since(start),
 				}
 			}
