@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/getsentry/sentry-go"
 	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
 	"log"
@@ -74,6 +75,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "failed to parse start time", http.StatusInternalServerError)
 		return
 	}
@@ -81,6 +83,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	tx, err := app.db.Begin()
 
 	if err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "failed to start transaction", http.StatusInternalServerError)
 		return
 	}
@@ -92,6 +95,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err != sql.ErrNoRows {
+			sentry.CaptureException(err)
 			http.Error(w, "failed to check if video already is being archived", http.StatusInternalServerError)
 			return
 		}
@@ -99,11 +103,13 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		statement, err := tx.Prepare("insert into videos (id, submitters, start) values ($1, $2, $3) returning *")
 
 		if err != nil {
+			sentry.CaptureException(err)
 			http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
 			return
 		}
 
 		if err := statement.QueryRow(request.VideoUrl, []string{user.id}, startTime).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+			sentry.CaptureException(err)
 			http.Error(w, "failed to create new video", http.StatusInternalServerError)
 			return
 		}
@@ -114,17 +120,20 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where $3 returning *")
 
 			if err != nil {
+				sentry.CaptureException(err)
 				http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
 				return
 			}
 
 			if err := statement.QueryRow(user.id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+				sentry.CaptureException(err)
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)
 				return
 			}
 		}
 
 		if err := tx.Commit(); err != nil {
+			sentry.CaptureException(err)
 			http.Error(w, "failed to commit transaction", http.StatusInternalServerError)
 			return
 		}
@@ -137,6 +146,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	if reschedule {
 		if IsLivestreamStarted(videoMetadata) {
 			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, request, 0); err != nil {
+				sentry.CaptureException(err)
 				http.Error(w, "failed to schedule and start recording job", http.StatusInternalServerError)
 				return
 			}
@@ -144,6 +154,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Livestream already started, starting recording immediatly")
 		} else {
 			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, request, 0); err != nil {
+				sentry.CaptureException(err)
 				http.Error(w, "failed to schedule recording job", http.StatusInternalServerError)
 				return
 			}
@@ -153,6 +164,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(); err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "failed to commit transaction", http.StatusInternalServerError)
 		return
 	}
@@ -161,6 +173,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", strings.ReplaceAll(startTime.UTC().Format(time.RFC1123), "UTC", "GMT"))
 
 	if err := json.NewEncoder(w).Encode(video); err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
 	}
 }
@@ -176,6 +189,7 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 	qualities, cached, err := GetVideoQualities(url)
 
 	if err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "cannot get video qualities", http.StatusInternalServerError)
 		return
 	}
@@ -190,6 +204,7 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(qualities); err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"github.com/patrickmn/go-cache"
 	"log"
 	"net/url"
@@ -37,7 +38,9 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 	cmd.Stdout = output
 
 	if err := cmd.Run(); err != nil {
-		log.Println("cannot run")
+		sentry.CaptureException(err)
+
+		log.Printf("failed to run youtube-dl: %s\n", err)
 		return nil, false, err
 	}
 
@@ -81,6 +84,7 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 		// [0]			[1]			[2]			[3]
 
 		if _, err := fmt.Sscanf(line, "%d %s %s", &code, &extension, &resolution); err != nil {
+			sentry.CaptureException(err)
 			continue
 		}
 
@@ -126,5 +130,6 @@ func ParseVideoID(videoUrl string) string {
 		return parsedUrl.Query().Get("v")
 	}
 
+	sentry.CaptureMessage("Failed to parse video url \"" + videoUrl + "\" into video id")
 	return videoUrl
 }

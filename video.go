@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/getsentry/sentry-go"
 	"log"
 	"os/exec"
 	"strings"
@@ -14,7 +15,9 @@ func StartRecording(request VideoRequest, try int32) {
 	cmd.Stdout = output
 
 	if err := cmd.Run(); err != nil {
-		log.Println("cannot run")
+		sentry.CaptureException(err)
+
+		log.Printf("cannot run youtube-dl: %s\n", err)
 		return
 	}
 

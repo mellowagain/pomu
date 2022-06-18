@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/getsentry/sentry-go"
 	"github.com/hymkor/go-lazy"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -53,6 +54,7 @@ func (app *Application) OauthRedirectHandler(w http.ResponseWriter, r *http.Requ
 	cookie, err := app.secureCookie.Encode("oauthToken", token)
 
 	if err != nil {
+		sentry.CaptureException(err)
 		http.Error(w, "failed to set cookie", http.StatusBadGateway)
 		return
 	}
@@ -85,6 +87,7 @@ func (app *Application) OauthRedirectHandler(w http.ResponseWriter, r *http.Requ
 
 	if user == nil {
 		if user, err = CreateUser(info, app.db); err != nil {
+			sentry.CaptureException(err)
 			http.Error(w, "failed to create user", http.StatusInternalServerError)
 			return
 		}

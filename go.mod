@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/aws/aws-sdk-go v1.44.37
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-co-op/gocron v1.14.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/gorilla/mux v1.8.0

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"github.com/getsentry/sentry-go"
 	"golang.org/x/oauth2"
 	googleOauth2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
@@ -42,6 +43,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -53,11 +55,13 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		} else {
+			sentry.CaptureException(err)
 			return &user, err
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -68,6 +72,7 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -76,10 +81,12 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 	var user User
 
 	if err = statement.QueryRow(userInfo.Id, userInfo.GivenName, userInfo.Picture).Scan(&user.id, &user.name, &user.avatar); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
 	if err = tx.Commit(); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 

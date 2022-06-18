@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
@@ -24,6 +27,8 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to load .env file")
 	}
+
+	setupSentry()
 
 	db := Connect()
 
@@ -70,6 +75,7 @@ func setupSecureCookie() *securecookie.SecureCookie {
 		envMap, err := godotenv.Read()
 
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Fatalf("Failed to read .env file: %s\n", err)
 		}
 
@@ -77,9 +83,36 @@ func setupSecureCookie() *securecookie.SecureCookie {
 		envMap["COOKIE_BLOCK_KEY"] = fmt.Sprintf("%x", blockKey)
 
 		if err = godotenv.Write(envMap, ".env"); err != nil {
+			sentry.CaptureException(err)
 			log.Fatalf("Failed to write .env file: %s\n", err)
 		}
 	}
 
 	return securecookie.New(hashKey, blockKey)
+}
+
+func setupSentry() {
+	if strings.ToLower(os.Getenv("SENTRY_ENABLE")) != "true" {
+		log.Println("Sentry error reporting is disabled")
+		return
+	} else {
+		log.Println("Sentry error reporting is enabled")
+	}
+
+	sampleRate, err := strconv.ParseFloat(os.Getenv("SENTRY_SAMPLE_RATE"), 64)
+
+	if err != nil {
+		log.Fatalf("Failed to parse SENTRY_SAMPLE_RATE: %s\n", err)
+	}
+
+	err = sentry.Init(sentry.ClientOptions{
+		AttachStacktrace: true,
+		Debug:            strings.ToLower(os.Getenv("SENTRY_DEBUG")) == "true",
+		TracesSampleRate: sampleRate,
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to setup sentry: %s\n", err)
+		return
+	}
 }
