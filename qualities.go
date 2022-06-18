@@ -58,6 +58,16 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 			continue
 		}
 
+		if strings.HasPrefix(line, "ERROR: This live event will begin in") {
+			qualities = append(qualities, VideoQuality{
+				Code:       -1,
+				Resolution: "Not yet started, will use best quality",
+				Best:       false,
+			})
+
+			return qualities, false, nil
+		}
+
 		if !started {
 			continue
 		}
