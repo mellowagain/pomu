@@ -1,15 +1,25 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 )
+
+type Video struct {
+	Id         string    `json:"id"`
+	Submitters []string  `json:"submitters"`
+	Start      time.Time `json:"scheduledStart"`
+}
 
 type VideoRequest struct {
 	VideoUrl string `json:"videoUrl"`
-	Quality  string `json:"quality"`
+	Quality  int32  `json:"quality"`
 }
 
 func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
@@ -29,13 +39,109 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	var token *oauth2.Token
 
-	if err = app.secureCookie.Decode("oauthToken", cookie.Value, token); err != nil {
+	if err = app.secureCookie.Decode("oauthToken", cookie.Value, &token); err != nil {
 		http.Error(w, "please login again", http.StatusUnauthorized)
 		return
 	}
 
-	log.Printf("New video submitted: %s (quality %s)\n", request.VideoUrl, request.Quality)
+	user, err := ResolveUser(token, app.db)
 
+	if err != nil {
+		http.Error(w, "failed to resolve user", http.StatusUnauthorized)
+		return
+	}
+
+	videoId := ParseVideoID(request.VideoUrl)
+	videoMetadata, err := GetVideoMetadata(videoId, token)
+
+	if !IsLivestream(videoMetadata) {
+		http.Error(w, "can only archive livestreams (for videos use youtube-dl)", http.StatusBadRequest)
+		return
+	}
+
+	if IsLivestreamEnded(videoMetadata) {
+		http.Error(w, "can only archive livestreams in the future or currently running (try youtube-dl)", http.StatusBadRequest)
+		return
+	}
+
+	var startTime time.Time
+
+	if IsLivestreamStarted(videoMetadata) {
+		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ActualStartTime)
+	} else {
+		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ScheduledStartTime)
+	}
+
+	if err != nil {
+		http.Error(w, "failed to parse start time", http.StatusInternalServerError)
+		return
+	}
+
+	tx, err := app.db.Begin()
+
+	if err != nil {
+		http.Error(w, "failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+
+	var video Video
+	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(&video)
+
+	if err != nil {
+		if err != sql.ErrNoRows {
+			http.Error(w, "failed to check if video already is being archived", http.StatusInternalServerError)
+			return
+		}
+
+		statement, err := tx.Prepare("insert into videos (id, submitters, start) values ($1, $2, $3) returning *")
+
+		if err != nil {
+			http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
+			return
+		}
+
+		if err := statement.QueryRow(request.VideoUrl, []string{user.id}, startTime).Scan(&video.Id, &video.Submitters, &video.Start); err != nil {
+			http.Error(w, "failed to create new video", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		if !slices.Contains(video.Submitters, user.id) {
+			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where $3 returning *")
+
+			if err != nil {
+				http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
+				return
+			}
+
+			if err := statement.QueryRow(user.id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start); err != nil {
+				http.Error(w, "failed to update existing video", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			http.Error(w, "failed to commit transaction", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Expires", strings.ReplaceAll(startTime.UTC().Format(time.RFC1123), "UTC", "GMT"))
+
+		if err := json.NewEncoder(w).Encode(video); err != nil {
+			http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	// collect meta data
+
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("New video submitted: %s (quality %s)\n", request.VideoUrl, request.Quality)
 }
 
 func PeekForQualities(w http.ResponseWriter, r *http.Request) {

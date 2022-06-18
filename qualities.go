@@ -107,8 +107,14 @@ func isValidUrl(videoUrl string) bool {
 func ParseVideoID(videoUrl string) string {
 	parsedUrl, _ := url.Parse(videoUrl)
 
-	videoId := strings.TrimPrefix(parsedUrl.Path, "/")
-	videoId = strings.ReplaceAll(videoId, "watch?v=", "")
+	switch strings.TrimPrefix(parsedUrl.Host, "www.") {
+	case "youtu.be":
+		// https://youtu.be/2naTB5J0jfI
+		return parsedUrl.Path
+	case "youtube.com":
+		// https://www.youtube.com/watch?v=2naTB5J0jfI
+		return parsedUrl.Query().Get("v")
+	}
 
-	return videoId
+	return videoUrl
 }

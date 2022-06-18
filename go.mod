@@ -12,6 +12,7 @@ require (
 	github.com/kz26/m3u8 v0.0.0-20141106195857-e50ea99e3925
 	github.com/lib/pq v1.10.6
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 	google.golang.org/api v0.84.0
 )

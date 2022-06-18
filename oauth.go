@@ -18,7 +18,7 @@ var oAuthConfig = lazy.New(func() *oauth2.Config {
 		ClientSecret: os.Getenv("OAUTH_CLIENT_SECRET"),
 		Endpoint:     google.Endpoint,
 		RedirectURL:  os.Getenv("REDIRECT_URL"),
-		Scopes:       []string{googleOauth2.UserinfoProfileScope, youtube.YoutubeUploadScope},
+		Scopes:       []string{googleOauth2.UserinfoProfileScope, youtube.YoutubeUploadScope, youtube.YoutubeScope, youtube.YoutubeReadonlyScope},
 	}
 })
 

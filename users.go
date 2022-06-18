@@ -1,14 +1,41 @@
 package main
 
 import (
+	"context"
 	"database/sql"
-	"google.golang.org/api/oauth2/v2"
+	"golang.org/x/oauth2"
+	googleOauth2 "google.golang.org/api/oauth2/v2"
+	"google.golang.org/api/option"
 )
 
 type User struct {
 	id     string
 	name   string
 	avatar string
+}
+
+// ResolveUser gets the user using the token
+func ResolveUser(token *oauth2.Token, db *sql.DB) (*User, error) {
+	service, err := googleOauth2.NewService(context.Background(), option.WithTokenSource(oauth2.StaticTokenSource(token)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	userInfoService := googleOauth2.NewUserinfoService(service)
+	info, err := userInfoService.Get().Do()
+
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := GetUser(info.Id, db)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func GetUser(id string, db *sql.DB) (*User, error) {
@@ -37,7 +64,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 	return &user, nil
 }
 
-func CreateUser(userInfo *oauth2.Userinfo, db *sql.DB) (*User, error) {
+func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
