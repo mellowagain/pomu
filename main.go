@@ -26,5 +26,8 @@ func main() {
 }
 
 func setupServer(address string) {
+	http.HandleFunc("/login", OauthLoginHandler)
+	http.HandleFunc("/oauth/redirect", OauthRedirectHandler)
+
 	log.Fatal(http.ListenAndServe(address, nil))
 }
