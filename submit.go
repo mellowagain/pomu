@@ -15,6 +15,7 @@ type Video struct {
 	Id         string    `json:"id"`
 	Submitters []string  `json:"submitters"`
 	Start      time.Time `json:"scheduledStart"`
+	Finished   bool      `json:"finished"`
 }
 
 type VideoRequest struct {
@@ -87,6 +88,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	var video Video
 	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(&video)
 
+	var reschedule bool
+
 	if err != nil {
 		if err != sql.ErrNoRows {
 			http.Error(w, "failed to check if video already is being archived", http.StatusInternalServerError)
@@ -100,10 +103,12 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := statement.QueryRow(request.VideoUrl, []string{user.id}, startTime).Scan(&video.Id, &video.Submitters, &video.Start); err != nil {
+		if err := statement.QueryRow(request.VideoUrl, []string{user.id}, startTime).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
 			http.Error(w, "failed to create new video", http.StatusInternalServerError)
 			return
 		}
+
+		reschedule = true
 	} else {
 		if !slices.Contains(video.Submitters, user.id) {
 			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where $3 returning *")
@@ -113,7 +118,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if err := statement.QueryRow(user.id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start); err != nil {
+			if err := statement.QueryRow(user.id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)
 				return
 			}
@@ -124,24 +129,40 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Expires", strings.ReplaceAll(startTime.UTC().Format(time.RFC1123), "UTC", "GMT"))
-
-		if err := json.NewEncoder(w).Encode(video); err != nil {
-			http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
-		}
-
-		return
+		reschedule = false
 	}
 
-	// collect meta data
+	log.Printf("New video submitted: %s (quality %d)\n", request.VideoUrl, request.Quality)
+
+	if reschedule {
+		if IsLivestreamStarted(videoMetadata) {
+			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, request); err != nil {
+				http.Error(w, "failed to schedule and start recording job", http.StatusInternalServerError)
+				return
+			}
+
+			log.Printf("Livestream already started, starting recording immediatly")
+		} else {
+			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, request); err != nil {
+				http.Error(w, "failed to schedule recording job", http.StatusInternalServerError)
+				return
+			}
+
+			log.Printf("Livestream recording scheduled for %s", startTime.Format(time.RFC3339))
+		}
+	}
 
 	if err := tx.Commit(); err != nil {
 		http.Error(w, "failed to commit transaction", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("New video submitted: %s (quality %s)\n", request.VideoUrl, request.Quality)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Expires", strings.ReplaceAll(startTime.UTC().Format(time.RFC1123), "UTC", "GMT"))
+
+	if err := json.NewEncoder(w).Encode(video); err != nil {
+		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
+	}
 }
 
 func PeekForQualities(w http.ResponseWriter, r *http.Request) {

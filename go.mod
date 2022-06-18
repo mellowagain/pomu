@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/aws/aws-sdk-go v1.44.37
+	github.com/go-co-op/gocron v1.14.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
@@ -23,8 +24,10 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.0.0-20220520183353-fd19c99a87aa // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
