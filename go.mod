@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/aws/aws-sdk-go v1.44.37
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+	github.com/gorilla/securecookie v1.1.1
 	github.com/hymkor/go-lazy v0.0.0-20220318030802-e1f012df1dc1
 	github.com/joho/godotenv v1.4.0
 	github.com/kz26/m3u8 v0.0.0-20141106195857-e50ea99e3925
