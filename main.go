@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"os"
 )
@@ -39,10 +40,17 @@ func main() {
 }
 
 func setupServer(address string, app *Application) {
-	http.HandleFunc("/login", OauthLoginHandler)
-	http.HandleFunc("/oauth/redirect", app.OauthRedirectHandler)
+	r := mux.NewRouter()
 
-	log.Fatal(http.ListenAndServe(address, nil))
+	// Videos
+	r.HandleFunc("/qualities", PeekForQualities).Methods("GET")
+	r.HandleFunc("/submit", app.SubmitVideo).Methods("POST")
+
+	// OAuth
+	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
+	r.HandleFunc("/oauth/redirect", app.OauthRedirectHandler).Methods("GET")
+
+	log.Fatal(http.ListenAndServe(address, r))
 }
 
 func setupSecureCookie() *securecookie.SecureCookie {

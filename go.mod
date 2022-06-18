@@ -5,11 +5,13 @@ go 1.18
 require (
 	github.com/aws/aws-sdk-go v1.44.37
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/hymkor/go-lazy v0.0.0-20220318030802-e1f012df1dc1
 	github.com/joho/godotenv v1.4.0
 	github.com/kz26/m3u8 v0.0.0-20141106195857-e50ea99e3925
 	github.com/lib/pq v1.10.6
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 	google.golang.org/api v0.84.0
 )
