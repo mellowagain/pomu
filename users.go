@@ -18,7 +18,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 		return nil, err
 	}
 
-	statement, err := db.Prepare("select * from users where id = $1 limit 1")
+	statement, err := tx.Prepare("select * from users where id = $1 limit 1")
 
 	var user User
 
@@ -44,7 +44,7 @@ func CreateUser(userInfo *oauth2.Userinfo, db *sql.DB) (*User, error) {
 		return nil, err
 	}
 
-	statement, err := db.Prepare("insert into users (id, name, avatar) values ($1, $2, $3) returning *")
+	statement, err := tx.Prepare("insert into users (id, name, avatar) values ($1, $2, $3) returning *")
 
 	var user User
 
