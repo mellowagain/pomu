@@ -1,4 +1,4 @@
-<script></script>
+<script lang="ts"></script>
 
 <svelte:options tag="im-pomu" />
 
