@@ -1,10 +1,19 @@
 .env
 
-### Svelte ###
-/node_modules/
-/public/build/
+### vite + svelte-ts ###
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-.DS_Store
+node_modules
+dist
+dist-ssr
+*.local
+
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
