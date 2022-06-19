@@ -46,6 +46,14 @@ func main() {
 func setupServer(address string, app *Application) {
 	r := mux.NewRouter()
 
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./public/index.html")
+	}).Methods("GET")
+
+	// Static resources @ /public
+	fileServer := http.FileServer(http.Dir("./public"))
+	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fileServer))
+
 	// Videos
 	r.HandleFunc("/qualities", PeekForQualities).Methods("GET")
 	r.HandleFunc("/submit", app.SubmitVideo).Methods("POST")
