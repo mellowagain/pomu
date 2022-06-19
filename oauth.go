@@ -97,9 +97,3 @@ func (app *Application) OauthRedirectHandler(w http.ResponseWriter, r *http.Requ
 
 	http.Redirect(w, r, redirectUrl, http.StatusTemporaryRedirect)
 }
-
-/*func CreateOAuth() {
-	ctx := context.Background()
-	service, err := youtube.NewService(ctx, option.WithTokenSource(""))
-
-}*/
