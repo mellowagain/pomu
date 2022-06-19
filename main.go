@@ -47,12 +47,12 @@ func setupServer(address string, app *Application) {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./public/index.html")
+		http.ServeFile(w, r, "./dist/index.html")
 	}).Methods("GET")
 
 	// Static resources @ /public
-	fileServer := http.FileServer(http.Dir("./public"))
-	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fileServer))
+	fileServer := http.FileServer(http.Dir("./dist/assets"))
+	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", fileServer))
 
 	// Videos
 	r.HandleFunc("/qualities", PeekForQualities).Methods("GET")
