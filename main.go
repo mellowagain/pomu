@@ -23,6 +23,8 @@ type Application struct {
 }
 
 func main() {
+	log.SetPrefix("[Pomu] ")
+
 	if err := godotenv.Load(); err != nil {
 		log.Fatalln("Failed to load .env file")
 	}
@@ -48,6 +50,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/qualities", PeekForQualities).Methods("GET")
 	r.HandleFunc("/submit", app.SubmitVideo).Methods("POST")
 	r.HandleFunc("/queue", app.GetQueue).Methods("GET")
+	r.HandleFunc("/history", app.GetHistory).Methods("GET")
 
 	// OAuth
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
