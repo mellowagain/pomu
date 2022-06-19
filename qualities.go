@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/getsentry/sentry-go"
@@ -32,17 +33,30 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 		return quality.([]VideoQuality), true, nil
 	}
 
+	span := sentry.StartSpan(context.Background(), "youtube-dl list-formats", sentry.TransactionName(fmt.Sprintf("youtube-dl list-formats %s", url)))
+
 	output := new(strings.Builder)
 
 	cmd := exec.Command("youtube-dl", "--list-formats", url)
 	cmd.Stdout = output
+	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
-		sentry.CaptureException(err)
+		if strings.Contains(output.String(), "ERROR: This live event will begin in") {
+			return []VideoQuality{{
+				Code:       -1,
+				Resolution: "Not yet started, will use best quality",
+				Best:       false,
+			}}, false, nil
+		} else {
+			sentry.CaptureException(err)
 
-		log.Printf("failed to run youtube-dl: %s\n", err)
-		return nil, false, err
+			log.Printf("failed to run youtube-dl: %s\n", err)
+			return nil, false, err
+		}
 	}
+
+	span.Finish()
 
 	split := strings.Split(output.String(), "\n")
 	started := false
@@ -59,16 +73,6 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 		if strings.HasPrefix(line, "format code") {
 			started = true
 			continue
-		}
-
-		if strings.HasPrefix(line, "ERROR: This live event will begin in") {
-			qualities = append(qualities, VideoQuality{
-				Code:       -1,
-				Resolution: "Not yet started, will use best quality",
-				Best:       false,
-			})
-
-			return qualities, false, nil
 		}
 
 		if !started {
