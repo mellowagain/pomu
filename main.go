@@ -16,21 +16,18 @@ import (
 	"os"
 )
 
+// Application is a shared state struct between all web routes
 type Application struct {
 	db           *sql.DB
 	secureCookie *securecookie.SecureCookie
 }
 
 func main() {
-	err := godotenv.Load()
-
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatalln("Failed to load .env file")
 	}
 
 	setupSentry()
-
-	db := Connect()
 
 	address := os.Getenv("BIND_ADDRESS")
 
@@ -39,7 +36,7 @@ func main() {
 	}
 
 	setupServer(address, &Application{
-		db:           db,
+		db:           Connect(),
 		secureCookie: setupSecureCookie(),
 	})
 }
