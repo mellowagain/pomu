@@ -47,6 +47,7 @@ func setupServer(address string, app *Application) {
 	// Videos
 	r.HandleFunc("/qualities", PeekForQualities).Methods("GET")
 	r.HandleFunc("/submit", app.SubmitVideo).Methods("POST")
+	r.HandleFunc("/queue", app.GetQueue).Methods("GET")
 
 	// OAuth
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
