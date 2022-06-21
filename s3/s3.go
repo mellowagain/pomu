@@ -8,11 +8,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 type Client struct {
-	bucket string
-	s3     *s3.S3
+	bucket   string
+	s3       *s3.S3
+	uploader *s3manager.Uploader
 }
 
 func New(bucket string) (*Client, error) {
@@ -28,19 +30,16 @@ func New(bucket string) (*Client, error) {
 		return nil, err
 	}
 
+	uploader := s3manager.NewUploader(newSession)
 	client := s3.New(newSession)
-
-	return &Client{bucket: bucket, s3: client}, nil
+	return &Client{bucket: bucket, s3: client, uploader: uploader}, nil
 }
 
-func (client *Client) Upload(path string, reader io.ReadSeeker) error {
-	_, err := client.s3.PutObject(&s3.PutObjectInput{
+func (client *Client) Upload(path string, reader io.Reader) error {
+	_, err := client.uploader.Upload(&s3manager.UploadInput{
 		Body:   reader,
 		Bucket: aws.String(client.bucket),
 		Key:    aws.String(path),
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

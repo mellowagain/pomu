@@ -36,7 +36,7 @@ func main() {
 
 	playlistUrl := os.Args[1]
 	path := os.Args[2]
-	downloader := hls.NewDownloader()
+	downloader := hls.New()
 	fmt.Println("Getting segments from", playlistUrl)
 	go downloader.Playlist(playlistUrl)
 
