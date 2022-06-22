@@ -76,7 +76,7 @@ func main() {
 		writer.CloseWithError(io.EOF)
 	}()
 
-	video.Download(hlsClient.Segments, muxer)
+	go video.Download(hlsClient.Segments, muxer)
 
 	fmt.Println("Press any key to stop...")
 
