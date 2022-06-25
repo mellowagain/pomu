@@ -1,4 +1,4 @@
-<img width="180" style="float: right; margin: 0 0 0 10px;" alt="Pomu Rainpuff" src="https://i.imgur.com/aH6F1Mh.png">
+<img width="180" align="right" style="float: right; margin: 0 0 0 10px;" alt="Pomu Rainpuff" src="https://i.imgur.com/aH6F1Mh.png">
 
 # pomu
 
@@ -12,7 +12,7 @@ Building:
 
 Running:
 
-* `youtube-dl`
+* `youtube-dl` / `yt-dlp`
 * `ffmpeg`
 * Decent amount of filesystem storage
 * S3 object storage for finished files (optional)

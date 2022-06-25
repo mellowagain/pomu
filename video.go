@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/getsentry/sentry-go"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ func StartRecording(request VideoRequest, try int32) {
 
 	output := new(strings.Builder)
 
-	cmd := exec.Command("youtube-dl", "-f", string(request.Quality), "-g", request.VideoUrl)
+	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "-f", string(request.Quality), "-g", request.VideoUrl)
 	cmd.Stdout = output
 	cmd.Stderr = output
 

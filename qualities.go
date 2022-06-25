@@ -8,6 +8,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"log"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 
 	output := new(strings.Builder)
 
-	cmd := exec.Command("youtube-dl", "--list-formats", url)
+	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "--list-formats", url)
 	cmd.Stdout = output
 	cmd.Stderr = output
 

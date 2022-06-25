@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -30,6 +31,7 @@ func main() {
 	}
 
 	setupSentry()
+	checkYouTubeDl()
 
 	address := os.Getenv("BIND_ADDRESS")
 
@@ -124,4 +126,18 @@ func setupSentry() {
 		log.Fatalf("Failed to setup sentry: %s\n", err)
 		return
 	}
+}
+
+func checkYouTubeDl() {
+	output := new(strings.Builder)
+
+	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "--version")
+	cmd.Stdout = output
+	cmd.Stderr = output
+
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Failed to find youtube-dl: %s\n", err)
+	}
+
+	log.Printf("Found youtube-dl version %s\n", strings.TrimSpace(output.String()))
 }
