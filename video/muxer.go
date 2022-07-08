@@ -1,9 +1,12 @@
 package video
 
 import (
+	"context"
 	"io"
 	"log"
 	"os/exec"
+
+	"github.com/getsentry/sentry-go"
 )
 
 type Muxer struct {
@@ -15,6 +18,9 @@ type Muxer struct {
 }
 
 func (w *Muxer) Start() error {
+	span := sentry.StartSpan(context.Background(), "ffmpeg start muxer")
+	defer span.Finish()
+
 	cmd := exec.Command(
 		"ffmpeg.exe",
 		"-i", "pipe:0",
@@ -53,16 +59,16 @@ func (w *Muxer) Close() error {
 	return w.stdin.Close()
 }
 
-func (w *Muxer) CloseWrite() error {
+func (w *Muxer) closeWrite() error {
 	return w.stdin.Close()
 }
 
-func (w *Muxer) CloseRead() error {
+func (w *Muxer) closeRead() error {
 	return w.stdout.Close()
 }
 
 func (w *Muxer) Stop() {
-	w.CloseWrite()
+	w.closeWrite()
 }
 
 var _ io.Writer = (*Muxer)(nil)

@@ -1,11 +1,13 @@
 package hls
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/groupcache/lru"
 	"github.com/kz26/m3u8"
 )
@@ -115,7 +117,10 @@ func (client *Client) Playlist(playlist RemotePlaylist) {
 	for !client.done {
 		t, err := client.playlistFrame(start, playlist)
 		if err != nil {
-			log.Fatal(err)
+			e := fmt.Sprint()
+			log.Println("Failed playlist frame:", err)
+			sentry.CaptureMessage(e)
+			return
 		}
 
 		if t == 0 {
@@ -125,6 +130,7 @@ func (client *Client) Playlist(playlist RemotePlaylist) {
 
 		if client.noChange > 10 {
 			log.Println("No change in 10 frames, playlist assumed done")
+			sentry.CaptureMessage("playlist did not change in 10 frame, done")
 			return
 		}
 

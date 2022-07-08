@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"pomu/hls"
+
+	"github.com/getsentry/sentry-go"
 )
 
 // Download downloads segments from the segments channel
@@ -16,7 +18,9 @@ func Download(segments chan hls.Segment, w io.WriteCloser) {
 	for segment := range segments {
 		req, err := http.NewRequest("GET", segment.Url, nil)
 		if err != nil {
-			log.Fatalln("http.NewRequest():", err)
+			log.Println("http.NewRequest():", err)
+			sentry.CaptureException(err)
+			return
 		}
 
 		req.Header.Set("User-Agent", os.Getenv("HTTP_USERAGENT"))
@@ -34,6 +38,7 @@ func Download(segments chan hls.Segment, w io.WriteCloser) {
 			n, err := io.Copy(w, body)
 			if err != nil {
 				log.Println("video.Download(): io.Copy():", err)
+				sentry.CaptureException(err)
 			}
 			if resp.ContentLength > n {
 				log.Println("video.Download(): io.Copy did not copy enough", n, "copied vs", resp.ContentLength)
