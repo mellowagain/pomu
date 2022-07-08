@@ -4,17 +4,19 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"github.com/getsentry/sentry-go"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
 
+	"github.com/getsentry/sentry-go"
+	"github.com/joho/godotenv"
+
+	"os"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
-	"os"
 )
 
 // Application is a shared state struct between all web routes
@@ -32,6 +34,7 @@ func main() {
 
 	setupSentry()
 	checkYouTubeDl()
+	Scheduler.StartAsync()
 
 	address := os.Getenv("BIND_ADDRESS")
 

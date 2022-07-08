@@ -11,11 +11,20 @@ import (
 	"pomu/hls"
 	"pomu/s3"
 	"pomu/video"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
 )
+
+// func buildYtdlCmd(url string, quality int32) (cmd *exec.Cmd, output *strings.Builder) {
+// 	output = new(strings.Builder)
+// 	cmd = exec.Command(os.Getenv("YOUTUBE_DL"), "-f", strconv.Itoa(int(quality)), "-g", url)
+// 	cmd.Stdout = output
+// 	cmd.Stderr = output
+// 	return
+// }
 
 type ytdlPlaylistUrl struct {
 	request VideoRequest
@@ -32,12 +41,13 @@ func (p *ytdlPlaylistUrl) Get() (string, error) {
 
 	output := new(strings.Builder)
 
-	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "-f", string(p.request.Quality), "-g", p.request.VideoUrl)
+	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "-f", string(strconv.Itoa(int(p.request.Quality))), "-g", p.request.VideoUrl)
 	cmd.Stdout = output
 	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
 		sentry.CaptureException(err)
+		log.Printf("cannot run youtube-dl: %s (output was %s)\n", err, output)
 		return "", err
 	}
 	if strings.Contains(output.String(), "ERROR: This live event will begin in") {
@@ -45,7 +55,7 @@ func (p *ytdlPlaylistUrl) Get() (string, error) {
 	}
 
 	span.Finish()
-	stringOutput := output.String()
+	stringOutput := strings.TrimSpace(output.String())
 
 	if !strings.HasSuffix(stringOutput, ".m3u8") {
 		log.Printf("Expected m3u8 output, received %s\n", stringOutput)
@@ -57,24 +67,7 @@ func (p *ytdlPlaylistUrl) Get() (string, error) {
 var _ hls.RemotePlaylist = (*ytdlPlaylistUrl)(nil)
 
 func hasLivestreamStarted(request VideoRequest) bool {
-	span := sentry.StartSpan(
-		context.Background(),
-		"youtube-dl get playlist",
-		sentry.TransactionName(
-			fmt.Sprintf("youtube-dl get playlist %s", request.VideoUrl)))
-	defer span.Finish()
-
-	output := new(strings.Builder)
-
-	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "-f", string(request.Quality), "-g", request.VideoUrl)
-	cmd.Stdout = output
-	cmd.Stderr = output
-
-	if err := cmd.Run(); err != nil {
-		sentry.CaptureException(err)
-		log.Printf("cannot run youtube-dl: %s\n", err)
-		return false
-	} else if strings.Contains(output.String(), "ERROR: This live event will begin in") {
+	if _, err := (&ytdlPlaylistUrl{request}).Get(); err != nil {
 		return false
 	}
 	return true
@@ -109,6 +102,8 @@ func record(request VideoRequest) {
 	muxer.Stderr = &stderr
 	muxer.Start()
 
+	finished := make(chan struct{})
+
 	s3, err := s3.New(os.Getenv("S3_BUCKET"))
 	if err != nil {
 		sentry.CaptureException(err)
@@ -121,6 +116,7 @@ func record(request VideoRequest) {
 		reader, writer := io.Pipe()
 
 		go func() {
+			defer func() { finished <- struct{}{} }()
 			err := s3.Upload(fmt.Sprintf("%s.mp4", id), reader)
 			if err != nil {
 				log.Println("s3.Upload2():", err)
@@ -146,6 +142,8 @@ func record(request VideoRequest) {
 		defer downloaderSpan.Finish()
 		video.Download(hlsClient.Segments, muxer)
 	}()
+
+	<-finished
 }
 
 func StartRecording(request VideoRequest) {
