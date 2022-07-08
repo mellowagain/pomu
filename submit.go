@@ -3,13 +3,16 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/getsentry/sentry-go"
-	"golang.org/x/exp/slices"
-	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/lib/pq"
+	"golang.org/x/exp/slices"
+	"golang.org/x/oauth2"
 )
 
 type Video struct {
@@ -22,6 +25,14 @@ type Video struct {
 type VideoRequest struct {
 	VideoUrl string `json:"videoUrl"`
 	Quality  int32  `json:"quality"`
+}
+
+func (r *VideoRequest) Id() (string, error) {
+	parsed, err := url.Parse(r.VideoUrl)
+	if err != nil {
+		return "", err
+	}
+	return parsed.Query().Get("v"), nil
 }
 
 func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +100,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var video Video
-	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(&video)
+	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(
+		&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished)
 
 	var reschedule bool
 
@@ -107,8 +119,15 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
 			return
 		}
+		row := statement.QueryRow(videoId, pq.Array([]string{user.id}), startTime)
 
-		if err := statement.QueryRow(request.VideoUrl, []string{user.id}, startTime).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+		if err := row.Err(); err != nil {
+			sentry.CaptureException(err)
+			http.Error(w, "failed to create new video", http.StatusInternalServerError)
+			return
+		}
+
+		if row.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished) != nil {
 			sentry.CaptureException(err)
 			http.Error(w, "failed to create new video", http.StatusInternalServerError)
 			return
@@ -145,7 +164,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	if reschedule {
 		if IsLivestreamStarted(videoMetadata) {
-			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, request, 0); err != nil {
+			if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, request); err != nil {
 				sentry.CaptureException(err)
 				http.Error(w, "failed to schedule and start recording job", http.StatusInternalServerError)
 				return
@@ -153,7 +172,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 			log.Printf("Livestream already started, starting recording immediatly")
 		} else {
-			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, request, 0); err != nil {
+			if _, err := Scheduler.SingletonMode().LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, request); err != nil {
 				sentry.CaptureException(err)
 				http.Error(w, "failed to schedule recording job", http.StatusInternalServerError)
 				return
