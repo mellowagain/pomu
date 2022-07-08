@@ -4,14 +4,14 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"github.com/getsentry/sentry-go"
+	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
-
-	"github.com/getsentry/sentry-go"
-	"github.com/joho/godotenv"
 
 	"os"
 
@@ -49,6 +49,12 @@ func main() {
 }
 
 func setupServer(address string, app *Application) {
+	c := cors.New(cors.Options{
+		AllowedOrigins:   strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ","),
+		AllowedMethods:   []string{http.MethodHead, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	})
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +75,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
 	r.HandleFunc("/oauth/redirect", app.OauthRedirectHandler).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(address, r))
+	log.Fatal(http.ListenAndServe(address, c.Handler(r)))
 }
 
 func setupSecureCookie() *securecookie.SecureCookie {

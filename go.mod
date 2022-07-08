@@ -14,6 +14,7 @@ require (
 	github.com/kz26/m3u8 v0.0.0-20141106195857-e50ea99e3925
 	github.com/lib/pq v1.10.6
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/rs/cors v1.8.2
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
 	google.golang.org/api v0.86.0
