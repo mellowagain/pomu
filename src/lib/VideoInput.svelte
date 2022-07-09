@@ -1,5 +1,12 @@
 <script lang="ts">
-    import {Button, Dropdown, Form, FormGroup, ImageLoader, TextInput} from "carbon-components-svelte";
+    import {
+        Button,
+        Dropdown,
+        Form,
+        FormGroup,
+        ImageLoader,
+        TextInput
+    } from "carbon-components-svelte";
 
     let qualities = [];
     let disabled = true;
@@ -10,13 +17,20 @@
     let videoUploader = '';
     let selectedId = "0";
 
+    let disableQualitiesDropdown = true;
+
+    function clearVideoDisplay() {
+        qualities = [];
+        thumbnailUrl = "";
+        videoTitle = "";
+        videoUploader = "";
+        selectedId = "0";
+        disableQualitiesDropdown = true;
+    }
+
     async function resolveQualities(_: any) {
         if (streamUrl.trim().length === 0) {
-            qualities = [];
-            thumbnailUrl = '';
-            videoTitle = '';
-            videoUploader = '';
-            selectedId = "0";
+            clearVideoDisplay();
             return;
         }
 
@@ -24,7 +38,7 @@
 
         await fetchVideoInfo(streamUrl);
 
-        let url = new URL("http://localhost:8080/qualities"); // TODO: Change this
+        let url = new URL(`${window.location.protocol}//${window.location.host}/api/qualities`);
         url.searchParams.set("url", streamUrl);
 
         let items = await fetch(url.toString()).then(r => r.json()).catch(r => console.log(r));
@@ -37,7 +51,9 @@
             }
         })
 
-        qualities.sort((a, b) => a.code.compare(b.code))
+        // https://stackoverflow.com/a/69250874/11494565
+        qualities.sort((a, b) => a.code - b.code);
+        disableQualitiesDropdown = false;
     }
 
     function submitForm(event) {
@@ -46,9 +62,12 @@
     }
 
     async function fetchVideoInfo(url: string) {
-        let info = await fetch("https://www.youtube.com/oembed?url=" + url).then(r => r.json()).catch(r => console.log(r));
+        let info = await fetch("https://www.youtube.com/oembed?url=" + url).then(r => r.json()).catch(r => {
+            console.log(r)
+            clearVideoDisplay();
+        });
 
-        thumbnailUrl = info.thumbnail_url;
+        thumbnailUrl = info.thumbnail_url.replaceAll("hqdefault", "maxresdefault");
         videoTitle = info.title;
         videoUploader = info.author_name;
     }
@@ -61,11 +80,10 @@
 
             <Dropdown
                     itemToString={(item) => (item.best ? "[BEST] " : "") + item.text + " (id " + item.id + ")"}
-                    disabled={qualities.length === 0}
+                    disabled={disableQualitiesDropdown}
                     titleText="Quality"
                     selectedId={selectedId}
                     items={qualities}
-
             />
         </FormGroup>
 
