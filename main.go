@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
@@ -57,19 +58,30 @@ func setupServer(address string, app *Application) {
 	})
 	r := mux.NewRouter()
 
+	// == FRONTEND ==
+
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./dist/index.html")
 	}).Methods("GET")
 
-	// Static resources @ /public
+	// Static resources
 	fileServer := http.FileServer(http.Dir("./dist/assets"))
 	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", fileServer))
 
+	// == API ==
+
+	r.HandleFunc("/api", apiOverview).Methods("GET")
+	r.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := fmt.Fprintln(w, "healthy"); err != nil {
+			http.Error(w, "unhealthy", http.StatusInternalServerError)
+		}
+	}).Methods("GET")
+
 	// Videos
-	r.HandleFunc("/qualities", PeekForQualities).Methods("GET")
-	r.HandleFunc("/submit", app.SubmitVideo).Methods("POST")
-	r.HandleFunc("/queue", app.GetQueue).Methods("GET")
-	r.HandleFunc("/history", app.GetHistory).Methods("GET")
+	r.HandleFunc("/api/qualities", PeekForQualities).Methods("GET")
+	r.HandleFunc("/api/submit", app.SubmitVideo).Methods("POST")
+	r.HandleFunc("/api/queue", app.GetQueue).Methods("GET")
+	r.HandleFunc("/api/history", app.GetHistory).Methods("GET")
 
 	// OAuth
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
@@ -149,4 +161,25 @@ func checkYouTubeDl() {
 	}
 
 	log.Printf("Found youtube-dl version %s\n", strings.TrimSpace(output.String()))
+}
+
+// GitHash will be filled by the build script
+var GitHash string
+
+func apiOverview(w http.ResponseWriter, _ *http.Request) {
+	if len(GitHash) <= 0 {
+		http.Error(w, "pomu was incorrectly built. please see readme.md", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"app":           "pomu.app",
+		"documentation": "https://docs.pomu.app",
+		"repository":    "https://github.com/mellowagain/pomu",
+		"commit":        GitHash,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to serialize", http.StatusInternalServerError)
+	}
 }
