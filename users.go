@@ -50,6 +50,11 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 
 	statement, err := tx.Prepare("select * from users where id = $1 limit 1")
 
+	if err != nil {
+		sentry.CaptureException(err)
+		return nil, err
+	}
+
 	var user User
 
 	if err = statement.QueryRow(id).Scan(&user.id, &user.name, &user.avatar); err != nil {
@@ -78,6 +83,11 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 	}
 
 	statement, err := tx.Prepare("insert into users (id, name, avatar) values ($1, $2, $3) returning *")
+
+	if err != nil {
+		sentry.CaptureException(err)
+		return nil, err
+	}
 
 	var user User
 
