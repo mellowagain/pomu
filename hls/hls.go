@@ -117,9 +117,8 @@ func (client *Client) Playlist(playlist RemotePlaylist) {
 	for !client.done {
 		t, err := client.playlistFrame(start, playlist)
 		if err != nil {
-			e := fmt.Sprint()
 			log.Println("Failed playlist frame:", err)
-			sentry.CaptureMessage(e)
+			sentry.CaptureMessage(fmt.Sprint("failed playlist frame: ", err))
 			return
 		}
 

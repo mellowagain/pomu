@@ -5,14 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/getsentry/sentry-go"
-	"github.com/joho/godotenv"
-	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 
 	"os"
 
@@ -82,6 +83,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/submit", app.SubmitVideo).Methods("POST")
 	r.HandleFunc("/api/queue", app.GetQueue).Methods("GET")
 	r.HandleFunc("/api/history", app.GetHistory).Methods("GET")
+	r.HandleFunc("/api/log", app.Log).Methods("GET")
 
 	// OAuth
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")

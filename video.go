@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"pomu/hls"
@@ -18,19 +21,11 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// func buildYtdlCmd(url string, quality int32) (cmd *exec.Cmd, output *strings.Builder) {
-// 	output = new(strings.Builder)
-// 	cmd = exec.Command(os.Getenv("YOUTUBE_DL"), "-f", strconv.Itoa(int(quality)), "-g", url)
-// 	cmd.Stdout = output
-// 	cmd.Stderr = output
-// 	return
-// }
-
-type ytdlPlaylistUrl struct {
+type ytdlRemotePlaylist struct {
 	request VideoRequest
 }
 
-func (p *ytdlPlaylistUrl) Get() (string, error) {
+func (p *ytdlRemotePlaylist) Get() (string, error) {
 	span := sentry.StartSpan(
 		context.Background(),
 		"youtube-dl get playlist",
@@ -64,16 +59,33 @@ func (p *ytdlPlaylistUrl) Get() (string, error) {
 	return stringOutput, nil
 }
 
-var _ hls.RemotePlaylist = (*ytdlPlaylistUrl)(nil)
+var _ hls.RemotePlaylist = (*ytdlRemotePlaylist)(nil)
+
+var ffmpegLogs map[string]*strings.Builder = make(map[string]*strings.Builder)
 
 func hasLivestreamStarted(request VideoRequest) bool {
-	if _, err := (&ytdlPlaylistUrl{request}).Get(); err != nil {
+	if _, err := (&ytdlRemotePlaylist{request}).Get(); err != nil {
 		return false
 	}
 	return true
 }
 
-func record(request VideoRequest) {
+func recordFinished(db *sql.DB, id string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("update videos set finished=true where id = $1")
+	if err != nil {
+		return err
+	}
+	if tx.Commit() != nil {
+		return err
+	}
+	return nil
+}
+
+func record(db *sql.DB, request VideoRequest) (err error) {
 	log.Println("Starting recording of ", request.VideoUrl)
 	span := sentry.StartSpan(
 		context.Background(),
@@ -93,13 +105,13 @@ func record(request VideoRequest) {
 	go func() {
 		hlsClientPlaylistSpan := span.StartChild("hls-client playlist")
 		defer hlsClientPlaylistSpan.Finish()
-		hlsClient.Playlist(&ytdlPlaylistUrl{request})
+		hlsClient.Playlist(&ytdlRemotePlaylist{request})
 	}()
 
 	// Start the video muxer
 	muxer := &video.Muxer{}
-	stderr := strings.Builder{}
-	muxer.Stderr = &stderr
+	ffmpegLogs[id] = new(strings.Builder)
+	muxer.Stderr = ffmpegLogs[id]
 	muxer.Start()
 
 	finished := make(chan struct{})
@@ -121,6 +133,7 @@ func record(request VideoRequest) {
 			if err != nil {
 				log.Println("s3.Upload2():", err)
 				sentry.CaptureException(err)
+				return
 			} else {
 				log.Println("s3 Upload successfully finished")
 			}
@@ -130,7 +143,7 @@ func record(request VideoRequest) {
 		sentry.CaptureMessage("copy from muxer to s3")
 		n, err := io.Copy(writer, muxer)
 		if err != nil {
-			log.Fatalln("io.Copy():", err)
+			log.Println("err: io.Copy():", err)
 			sentry.CaptureException(err)
 		}
 		log.Println("Finished reading from ffmpeg: ", n)
@@ -144,17 +157,48 @@ func record(request VideoRequest) {
 	}()
 
 	<-finished
+	log.Println("record finished")
+	return nil
 }
 
-func StartRecording(request VideoRequest) {
+func StartRecording(db *sql.DB, request VideoRequest) {
 	log.Println("Waiting for ", request.VideoUrl)
 	for try := 0; try < 120; try += 1 {
 		if hasLivestreamStarted(request) {
-			record(request)
+			err := record(db, request)
+			if err != nil {
+				log.Println("record failed: ", err)
+				return
+			}
+			id, err := request.Id()
+			if err != nil {
+				log.Println("failed to get video id for", request.VideoUrl)
+				return
+			}
+
+			err = recordFinished(db, id)
+			if err != nil {
+				log.Println("Failed record finish for", id)
+			}
+
 			return
 		}
 
 		log.Println("Waiting for ", request.VideoUrl, " try=", try)
 		time.Sleep(1 * time.Minute)
 	}
+}
+
+func (app *Application) Log(w http.ResponseWriter, r *http.Request) {
+	ytUrl := r.URL.Query().Get("url")
+	parsedUrl, err := url.Parse(ytUrl)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if log, ok := ffmpegLogs[parsedUrl.Query().Get("v")]; ok {
+		w.Write([]byte(log.String()))
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
 }
