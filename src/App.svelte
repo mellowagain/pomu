@@ -4,6 +4,7 @@
   import Logo from "./lib/Logo.svelte";
   import Heading from "./lib/Heading.svelte";
   import ArchiveButtons from "./lib/ArchiveButtons.svelte";
+  import AuthNotification from "./lib/AuthNotification.svelte";
 </script>
 
 <main>
@@ -14,6 +15,8 @@
         <VideoInput />
 
         <ArchiveButtons />
+
+        <AuthNotification />
     </div>
 </main>
 

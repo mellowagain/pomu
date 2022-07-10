@@ -2,13 +2,23 @@
 import {ToastNotification} from "carbon-components-svelte";
 
 export let title;
-export let description;
+export let description = "";
 export let kind = "error";
 </script>
 
-<ToastNotification
-        lowContrast
-        title={title}
-        subtitle={description}
-        kind={kind}
-/>
+<div>
+    <ToastNotification
+            lowContrast
+            title={title}
+            subtitle={description}
+            kind={kind}
+    />
+</div>
+
+<style>
+    div {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+</style>
