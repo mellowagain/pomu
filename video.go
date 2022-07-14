@@ -75,7 +75,7 @@ func recordFinished(db *sql.DB, id string) error {
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec("update videos set finished=true where id = $1")
+	_, err = tx.Exec("update videos set finished=true where id = $1", id)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func recordFinished(db *sql.DB, id string) error {
 	return nil
 }
 
-func record(db *sql.DB, request VideoRequest) (err error) {
+func record(request VideoRequest) (err error) {
 	log.Println("Starting recording of ", request.VideoUrl)
 	span := sentry.StartSpan(
 		context.Background(),
@@ -165,7 +165,7 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 	log.Println("Waiting for ", request.VideoUrl)
 	for try := 0; try < 120; try += 1 {
 		if hasLivestreamStarted(request) {
-			err := record(db, request)
+			err := record(request)
 			if err != nil {
 				log.Println("record failed: ", err)
 				return
