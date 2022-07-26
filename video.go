@@ -77,25 +77,30 @@ func hasLivestreamStarted(request VideoRequest) (bool, error) {
 	return true, nil
 }
 
-func recordFinished(db *sql.DB, id string) error {
+func recordFinished(db *sql.DB, id string, size int64) error {
 	tx, err := db.Begin()
+
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec("update videos set finished=true where id = $1", id)
+
+	_, err = tx.Exec("update videos set finished = true, file_size = $1 where id = $2", size, id)
+
 	if err != nil {
 		return err
 	}
+
 	if tx.Commit() != nil {
 		return err
 	}
+
 	return nil
 }
 
 func recordFailed(db *sql.DB, id string) error {
 	log.Println("Record for", id, "failed, deleting from database")
 
-	// TODO(emily): Probably want to make sure that s3 is cleaned up aswell
+	// TODO(emily): Probably want to make sure that s3 is cleaned up as well
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -113,7 +118,7 @@ func recordFailed(db *sql.DB, id string) error {
 	return nil
 }
 
-func record(request VideoRequest) (err error) {
+func record(request VideoRequest) (size int64, err error) {
 	log.Println("Starting recording of ", request.VideoUrl)
 	span := sentry.StartSpan(
 		context.Background(),
@@ -144,15 +149,17 @@ func record(request VideoRequest) (err error) {
 	if err != nil {
 		log.Println("Failed to start ffmpeg:", err)
 		hlsClient.Stop()
-		return
+		return 0, errors.New("failed to start ffmpeg")
 	}
 	finished := make(chan struct{})
 
 	s3, err := s3.New(os.Getenv("S3_BUCKET"))
 	if err != nil {
 		sentry.CaptureException(err)
-		return
+		return 0, errors.New("failed to contact s3 bucket")
 	}
+
+	sizeWritten := make(chan int64)
 
 	go func() {
 		muxerSpan := span.StartChild("muxer-uploader loop")
@@ -173,13 +180,14 @@ func record(request VideoRequest) (err error) {
 
 		log.Println("Begin copying")
 		sentry.CaptureMessage("copy from muxer to s3")
-		n, err := io.Copy(writer, muxer)
+		size, err := io.Copy(writer, muxer)
 		if err != nil {
 			log.Println("copy muxer to s3:", err)
 			sentry.CaptureException(err)
 		}
-		log.Println("Finished reading from ffmpeg: ", n)
-		writer.CloseWithError(io.EOF)
+		log.Println("Finished reading from ffmpeg: ", size)
+		sizeWritten <- size
+		_ = writer.CloseWithError(io.EOF)
 	}()
 
 	go func() {
@@ -190,7 +198,7 @@ func record(request VideoRequest) (err error) {
 
 	<-finished
 	log.Println("record finished")
-	return nil
+	return <-sizeWritten, nil
 }
 
 func StartRecording(db *sql.DB, request VideoRequest) {
@@ -202,12 +210,13 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 	}
 	for try := 0; try < 120; try += 1 {
 		if started, err := hasLivestreamStarted(request); err == nil && started {
-			err := record(request)
+			size, err := record(request)
 			if err != nil {
 				log.Println("record failed:", err)
 				return
 			}
-			err = recordFinished(db, id)
+
+			err = recordFinished(db, id, size)
 			if err != nil {
 				log.Println("Failed record finish for", id)
 			}
@@ -233,7 +242,10 @@ func (app *Application) Log(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if log, ok := ffmpegLogs[parsedUrl.Query().Get("v")]; ok {
-		w.Write([]byte(log.String()))
+		_, err := w.Write([]byte(log.String()))
+		if err != nil {
+			http.Error(w, "failed to write output bytes", http.StatusInternalServerError)
+		}
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)
