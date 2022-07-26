@@ -15,10 +15,11 @@ import (
 )
 
 type Video struct {
-	Id         string    `json:"id"`
-	Submitters []string  `json:"submitters"`
-	Start      time.Time `json:"scheduledStart"`
-	Finished   bool      `json:"finished"`
+	Id          string    `json:"id"`
+	Submitters  []string  `json:"submitters"`
+	Start       time.Time `json:"scheduledStart"`
+	Finished    bool      `json:"finished"`
+	DownloadUrl string    `json:"downloadUrl,omitempty"`
 }
 
 type VideoRequest struct {

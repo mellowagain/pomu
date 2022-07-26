@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -51,7 +52,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}(rows)
 
-	videos := []Video{}
+	var videos []Video
 
 	for rows.Next() {
 		var video Video
@@ -59,6 +60,10 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished); err != nil {
 			sentry.CaptureException(err)
 			continue
+		}
+
+		if video.Finished {
+			video.DownloadUrl = fmt.Sprintf("%s/%s.mp4", os.Getenv("S3_DOWNLOAD_URL"), video.Id)
 		}
 
 		videos = append(videos, video)
