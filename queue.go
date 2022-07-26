@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/getsentry/sentry-go"
+	"log"
 	"net/http"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/lib/pq"
 )
 
 func (app *Application) GetQueue(w http.ResponseWriter, _ *http.Request) {
@@ -27,6 +30,7 @@ func (app *Application) GetQueue(w http.ResponseWriter, _ *http.Request) {
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
+			log.Println(err)
 			sentry.CaptureException(err)
 		}
 	}(rows)
@@ -36,8 +40,9 @@ func (app *Application) GetQueue(w http.ResponseWriter, _ *http.Request) {
 	for rows.Next() {
 		var video Video
 
-		if err := rows.Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished); err != nil {
 			sentry.CaptureException(err)
+			log.Println(err)
 			continue
 		}
 

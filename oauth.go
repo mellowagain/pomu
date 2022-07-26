@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/hymkor/go-lazy"
 	"golang.org/x/oauth2"
@@ -9,8 +13,6 @@ import (
 	googleOauth2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
-	"net/http"
-	"os"
 )
 
 var oAuthConfig = lazy.New(func() *oauth2.Config {
@@ -73,6 +75,7 @@ func (app *Application) OauthRedirectHandler(w http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		http.Error(w, "failed to get user info", http.StatusInternalServerError)
+		log.Println("Failed to get user info: ", err)
 		return
 	}
 
@@ -80,6 +83,7 @@ func (app *Application) OauthRedirectHandler(w http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		http.Error(w, "failed to get user info", http.StatusInternalServerError)
+		log.Println("Failed to get user info: ", err)
 		return
 	}
 

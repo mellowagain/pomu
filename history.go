@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/getsentry/sentry-go"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/lib/pq"
 )
 
 func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +56,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var video Video
 
-		if err := rows.Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished); err != nil {
 			sentry.CaptureException(err)
 			continue
 		}
