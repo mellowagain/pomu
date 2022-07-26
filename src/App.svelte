@@ -1,13 +1,15 @@
 <script lang="ts">
-  import "carbon-components-svelte/css/g100.css";
-  import VideoInput from "./lib/VideoInput.svelte";
-  import Logo from "./lib/Logo.svelte";
-  import Heading from "./lib/Heading.svelte";
-  import ArchiveButtons from "./lib/ArchiveButtons.svelte";
-  import AuthNotification from "./lib/AuthNotification.svelte";
+    import "carbon-components-svelte/css/g100.css";
+    import VideoInput from "./lib/VideoInput.svelte";
+    import Logo from "./lib/Logo.svelte";
+    import Heading from "./lib/Heading.svelte";
+    import ArchiveButtons from "./lib/ArchiveButtons.svelte";
+    import AuthNotification from "./lib/AuthNotification.svelte";
+    import Login from "./lib/Login.svelte";
 </script>
 
 <main>
+    <Login />
     <div class="content" align="center">
         <Logo />
         <Heading />
