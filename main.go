@@ -36,6 +36,7 @@ func main() {
 
 	setupSentry()
 	checkYouTubeDl()
+	checkFfmpeg()
 	Scheduler.StartAsync()
 
 	address := os.Getenv("BIND_ADDRESS")
@@ -163,6 +164,20 @@ func checkYouTubeDl() {
 	}
 
 	log.Printf("Found youtube-dl version %s\n", strings.TrimSpace(output.String()))
+}
+
+func checkFfmpeg() {
+	output := new(strings.Builder)
+	cmd := exec.Command(os.Getenv("FFMPEG"), "-version")
+	cmd.Stdout = output
+	cmd.Stderr = output
+
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Failed to find ffmpeg: %s\n", err)
+	}
+
+	before, _, _ := strings.Cut(output.String(), "\n")
+	log.Println("Found", before)
 }
 
 // GitHash will be filled by the build script

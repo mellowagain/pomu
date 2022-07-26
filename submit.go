@@ -59,13 +59,18 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ResolveUser(token, app.db)
 
-	if err != nil {
+	if user == nil || err != nil {
 		http.Error(w, "failed to resolve user", http.StatusUnauthorized)
 		return
 	}
 
 	videoId := ParseVideoID(request.VideoUrl)
 	videoMetadata, err := GetVideoMetadata(videoId, token)
+
+	if err != nil {
+		http.Error(w, "failed to get video metadata", http.StatusBadRequest)
+		return
+	}
 
 	if !IsLivestream(videoMetadata) {
 		http.Error(w, "can only archive livestreams (for videos use youtube-dl)", http.StatusBadRequest)
