@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 
 	"github.com/getsentry/sentry-go"
@@ -22,7 +23,7 @@ func (w *Muxer) Start() error {
 	defer span.Finish()
 
 	cmd := exec.Command(
-		"ffmpeg.exe",
+		os.Getenv("FFMPEG"),
 		"-i", "pipe:0",
 		"-c", "copy",
 		"-movflags", "frag_keyframe+empty_moov",
