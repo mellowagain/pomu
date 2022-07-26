@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -28,11 +27,7 @@ type VideoRequest struct {
 }
 
 func (r *VideoRequest) Id() (string, error) {
-	parsed, err := url.Parse(r.VideoUrl)
-	if err != nil {
-		return "", err
-	}
-	return parsed.Query().Get("v"), nil
+	return ParseVideoID(r.VideoUrl), nil
 }
 
 func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {

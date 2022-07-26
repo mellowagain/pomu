@@ -25,6 +25,9 @@ type ytdlRemotePlaylist struct {
 	request VideoRequest
 }
 
+// ErrorLivestreamNotStarted indicates that the livestream has not started
+var ErrorLivestreamNotStarted = errors.New("livestream has not started")
+
 func (p *ytdlRemotePlaylist) Get() (string, error) {
 	span := sentry.StartSpan(
 		context.Background(),
@@ -46,7 +49,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 		return "", err
 	}
 	if strings.Contains(output.String(), "ERROR: This live event will begin in") {
-		return "", errors.New("livestream has not started")
+		return "", ErrorLivestreamNotStarted
 	}
 
 	span.Finish()
@@ -54,7 +57,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 
 	if !strings.HasSuffix(stringOutput, ".m3u8") {
 		log.Printf("Expected m3u8 output, received %s\n", stringOutput)
-		return "", errors.New("expcted m3u8")
+		return "", errors.New("expected m3u8")
 	}
 	return stringOutput, nil
 }
@@ -63,11 +66,15 @@ var _ hls.RemotePlaylist = (*ytdlRemotePlaylist)(nil)
 
 var ffmpegLogs map[string]*strings.Builder = make(map[string]*strings.Builder)
 
-func hasLivestreamStarted(request VideoRequest) bool {
-	if _, err := (&ytdlRemotePlaylist{request}).Get(); err != nil {
-		return false
+func hasLivestreamStarted(request VideoRequest) (bool, error) {
+	_, err := (&ytdlRemotePlaylist{request}).Get()
+	if err == ErrorLivestreamNotStarted {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-	return true
+
+	return true, nil
 }
 
 func recordFinished(db *sql.DB, id string) error {
@@ -82,6 +89,27 @@ func recordFinished(db *sql.DB, id string) error {
 	if tx.Commit() != nil {
 		return err
 	}
+	return nil
+}
+
+func recordFailed(db *sql.DB, id string) error {
+	log.Println("Record for", id, "failed, deleting from database")
+
+	// TODO(emily): Probably want to make sure that s3 is cleaned up aswell
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("delete from videos where id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	if tx.Commit() != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -112,8 +140,12 @@ func record(request VideoRequest) (err error) {
 	muxer := &video.Muxer{}
 	ffmpegLogs[id] = new(strings.Builder)
 	muxer.Stderr = ffmpegLogs[id]
-	muxer.Start()
-
+	err = muxer.Start()
+	if err != nil {
+		log.Println("Failed to start ffmpeg:", err)
+		hlsClient.Stop()
+		return
+	}
 	finished := make(chan struct{})
 
 	s3, err := s3.New(os.Getenv("S3_BUCKET"))
@@ -143,7 +175,7 @@ func record(request VideoRequest) (err error) {
 		sentry.CaptureMessage("copy from muxer to s3")
 		n, err := io.Copy(writer, muxer)
 		if err != nil {
-			log.Println("err: io.Copy():", err)
+			log.Println("copy muxer to s3:", err)
 			sentry.CaptureException(err)
 		}
 		log.Println("Finished reading from ffmpeg: ", n)
@@ -162,29 +194,33 @@ func record(request VideoRequest) (err error) {
 }
 
 func StartRecording(db *sql.DB, request VideoRequest) {
-	log.Println("Waiting for ", request.VideoUrl)
+	log.Println("Waiting for", request.VideoUrl)
+	id, err := request.Id()
+	if err != nil {
+		log.Println("failed to get video id for", request.VideoUrl)
+		return
+	}
 	for try := 0; try < 120; try += 1 {
-		if hasLivestreamStarted(request) {
+		if started, err := hasLivestreamStarted(request); err == nil && started {
 			err := record(request)
 			if err != nil {
-				log.Println("record failed: ", err)
+				log.Println("record failed:", err)
 				return
 			}
-			id, err := request.Id()
-			if err != nil {
-				log.Println("failed to get video id for", request.VideoUrl)
-				return
-			}
-
 			err = recordFinished(db, id)
 			if err != nil {
 				log.Println("Failed record finish for", id)
 			}
-
 			return
+		} else if err != nil {
+			log.Println("Failed checking livestream started:", err)
+			err = recordFailed(db, id)
+			if err != nil {
+				log.Println("Failed record fail for", id)
+			}
 		}
 
-		log.Println("Waiting for ", request.VideoUrl, " try=", try)
+		log.Println("Waiting for", request.VideoUrl, "try=", try)
 		time.Sleep(1 * time.Minute)
 	}
 }
