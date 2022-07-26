@@ -35,7 +35,7 @@ func (app *Application) GetQueue(w http.ResponseWriter, _ *http.Request) {
 		}
 	}(rows)
 
-	var videos []Video
+	videos :=  []Video{}
 
 	for rows.Next() {
 		var video Video
