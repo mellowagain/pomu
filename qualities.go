@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/getsentry/sentry-go"
-	"github.com/patrickmn/go-cache"
 	"log"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/patrickmn/go-cache"
 )
 
 var qualitiesCache = cache.New(4*time.Hour, 10*time.Minute)
@@ -129,7 +130,7 @@ func ParseVideoID(videoUrl string) string {
 	switch strings.TrimPrefix(parsedUrl.Host, "www.") {
 	case "youtu.be":
 		// https://youtu.be/2naTB5J0jfI
-		return parsedUrl.Path
+		return parsedUrl.Path[1:]
 	case "youtube.com":
 		// https://www.youtube.com/watch?v=2naTB5J0jfI
 		return parsedUrl.Query().Get("v")
