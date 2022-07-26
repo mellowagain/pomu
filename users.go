@@ -11,9 +11,9 @@ import (
 )
 
 type User struct {
-	id     string
-	name   string
-	avatar string
+	Id     string `json:"id"`
+	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
 }
 
 // ResolveUser gets the user using the token
@@ -57,7 +57,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 
 	var user User
 
-	if err = statement.QueryRow(id).Scan(&user.id, &user.name, &user.avatar); err != nil {
+	if err = statement.QueryRow(id).Scan(&user.Id, &user.Name, &user.Avatar); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		} else {
@@ -91,7 +91,7 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 
 	var user User
 
-	if err = statement.QueryRow(userInfo.Id, userInfo.GivenName, userInfo.Picture).Scan(&user.id, &user.name, &user.avatar); err != nil {
+	if err = statement.QueryRow(userInfo.Id, userInfo.GivenName, userInfo.Picture).Scan(&user.Id, &user.Name, &user.Avatar); err != nil {
 		sentry.CaptureException(err)
 		return nil, err
 	}

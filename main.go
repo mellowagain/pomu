@@ -89,6 +89,7 @@ func setupServer(address string, app *Application) {
 	// OAuth
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
 	r.HandleFunc("/oauth/redirect", app.OauthRedirectHandler).Methods("GET")
+	r.HandleFunc("/api/user", app.User).Methods(http.MethodGet)
 
 	log.Fatal(http.ListenAndServe(address, c.Handler(r)))
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -100,4 +101,37 @@ func (app *Application) OauthRedirectHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	http.Redirect(w, r, redirectUrl, http.StatusTemporaryRedirect)
+}
+
+func (app *Application) ResolveUserFromRequest(r *http.Request) (user *User, err error) {
+	cookie, err := r.Cookie("pomu")
+
+	if err != nil {
+		return
+	}
+
+	var token *oauth2.Token
+
+	if err = app.secureCookie.Decode("oauthToken", cookie.Value, &token); err != nil {
+		return
+	}
+
+	user, err = ResolveUser(token, app.db)
+
+	return
+}
+
+func (app *Application) User(w http.ResponseWriter, r *http.Request) {
+	user, err := app.ResolveUserFromRequest(r)
+	if err != nil || user == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	userJson, err := json.Marshal(user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(userJson)
 }

@@ -122,7 +122,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
 			return
 		}
-		row := statement.QueryRow(videoId, pq.Array([]string{user.id}), startTime)
+		row := statement.QueryRow(videoId, pq.Array([]string{user.Id}), startTime)
 
 		if err := row.Err(); err != nil {
 			sentry.CaptureException(err)
@@ -138,7 +138,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 		reschedule = true
 	} else {
-		if !slices.Contains(video.Submitters, user.id) {
+		if !slices.Contains(video.Submitters, user.Id) {
 			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where $3 returning *")
 
 			if err != nil {
@@ -147,7 +147,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if err := statement.QueryRow(user.id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+			if err := statement.QueryRow(user.Id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
 				sentry.CaptureException(err)
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)
 				return
