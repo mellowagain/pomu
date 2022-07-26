@@ -69,11 +69,13 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	if !IsLivestream(videoMetadata) {
 		http.Error(w, "can only archive livestreams (for videos use youtube-dl)", http.StatusBadRequest)
+		log.Println("Ignoring submission", videoId, " as it is not a livestream")
 		return
 	}
 
 	if IsLivestreamEnded(videoMetadata) {
 		http.Error(w, "can only archive livestreams in the future or currently running (try youtube-dl)", http.StatusBadRequest)
+		log.Println("Ignoring submission", videoId, " as it has ended")
 		return
 	}
 
