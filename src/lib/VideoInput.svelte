@@ -65,15 +65,18 @@
         disableQualitiesDropdown = false;
     }
 
-    function submitForm(event) {
+    async function submitForm(event: any) {
         event.preventDefault();
-        fetch("/api/submit", {
+
+        let response = await fetch(`/api/submit`, {
             method: "POST",
             body: JSON.stringify({
                 videoUrl: streamUrl,
-                quality: +selectedId,
-            }),
-        });
+                quality: +selectedId
+            })
+        }).then(r => r.json()).catch(r => console.log(r));
+
+        console.log(response);
     }
 
     async function fetchVideoInfo(url: string) {
@@ -112,7 +115,7 @@
                     ")"}
                 disabled={disableQualitiesDropdown}
                 titleText="Quality"
-                {selectedId}
+                bind:selectedId={selectedId}
                 items={qualities}
             />
         </FormGroup>
