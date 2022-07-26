@@ -18,7 +18,7 @@ func GetVideoMetadata(videoId string, token *oauth2.Token) (*youtube.Video, erro
 
 	videoService := youtube.NewVideosService(service)
 
-	list, err := videoService.List([]string{"contentDetails", "liveStreamingDetails"}).Id(videoId).Do()
+	list, err := videoService.List([]string{"contentDetails", "liveStreamingDetails", "snippet"}).Id(videoId).Do()
 
 	if err != nil {
 		return nil, err
@@ -32,19 +32,15 @@ func GetVideoMetadata(videoId string, token *oauth2.Token) (*youtube.Video, erro
 }
 
 func IsLivestream(video *youtube.Video) bool {
-	return video != nil && video.LiveStreamingDetails != nil
+	return video != nil && video.LiveStreamingDetails != nil && video.Snippet.LiveBroadcastContent != "none"
 }
 
-// IsLivestreamStarted checks if the livestream started but has not yet ended
+// IsLivestreamStarted checks if the livestream is currently live
 func IsLivestreamStarted(video *youtube.Video) bool {
-	return IsLivestream(video) &&
-		len(video.LiveStreamingDetails.ScheduledStartTime) > 0 &&
-		len(video.LiveStreamingDetails.ActualStartTime) > 0 &&
-		!IsLivestreamEnded(video)
+	return IsLivestream(video) && video.Snippet.LiveBroadcastContent == "live"
 }
 
-// IsLivestreamEnded checks if the livestream ended
+// IsLivestreamEnded checks if the livestream has ended
 func IsLivestreamEnded(video *youtube.Video) bool {
-	return IsLivestream(video) &&
-		len(video.LiveStreamingDetails.ActualEndTime) > 0
+	return IsLivestream(video) && video.Snippet.LiveBroadcastContent == "completed"
 }

@@ -19,7 +19,13 @@ type Video struct {
 	Submitters  []string  `json:"submitters"`
 	Start       time.Time `json:"scheduledStart"`
 	Finished    bool      `json:"finished"`
-	DownloadUrl string    `json:"downloadUrl,omitempty"`
+	Title       string    `json:"title"`
+	ChannelName string    `json:"channelName"`
+	ChannelId   string    `json:"channelId"`
+	Thumbnail   string    `json:"thumbnail"`
+	DownloadUrl string    `json:"downloadUrl,omitempty"` // Not actually part of the query
+	FileSize    string    `json:"fileSizeBytes,omitempty"`
+	Length      string    `json:"length,omitempty"`
 }
 
 type VideoRequest struct {
@@ -104,7 +110,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	var video Video
 	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(
-		&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished)
+		&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished, &video.Finished, &video.Title, &video.ChannelName, &video.ChannelId, &video.Thumbnail, &video.Finished, &video.Length)
 
 	var reschedule bool
 
@@ -115,14 +121,14 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		statement, err := tx.Prepare("insert into videos (id, submitters, start) values ($1, $2, $3) returning *")
+		statement, err := tx.Prepare("insert into videos (id, submitters, start, title, channel_name, channel_id, thumbnail) values ($1, $2, $3, $4, $5, $6, $7) returning *")
 
 		if err != nil {
 			sentry.CaptureException(err)
 			http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
 			return
 		}
-		row := statement.QueryRow(videoId, pq.Array([]string{user.Id}), startTime)
+		row := statement.QueryRow(videoId, pq.Array([]string{user.Id}), startTime, videoMetadata.Snippet.Title, videoMetadata.Snippet.ChannelTitle, videoMetadata.Snippet.ChannelId, videoMetadata.Snippet.Thumbnails.Maxres.Url)
 
 		if err := row.Err(); err != nil {
 			sentry.CaptureException(err)

@@ -35,12 +35,12 @@ func (app *Application) GetQueue(w http.ResponseWriter, _ *http.Request) {
 		}
 	}(rows)
 
-	videos :=  []Video{}
+	var videos []Video
 
 	for rows.Next() {
 		var video Video
 
-		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished); err != nil {
+		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished, &video.Title, &video.ChannelName, &video.ChannelId, &video.Thumbnail, &video.FileSize, &video.Length); err != nil {
 			sentry.CaptureException(err)
 			log.Println(err)
 			continue
