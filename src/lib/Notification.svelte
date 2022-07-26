@@ -1,24 +1,12 @@
 <script lang="ts">
-import {ToastNotification} from "carbon-components-svelte";
+    import { Popover, ToastNotification } from "carbon-components-svelte";
 
-export let title;
-export let description = "";
-export let kind = "error";
+    export let title;
+    export let description = "";
+    export let kind = "error";
 </script>
 
-<div>
-    <ToastNotification
-            lowContrast
-            title={title}
-            subtitle={description}
-            kind={kind}
-    />
-</div>
+<ToastNotification lowContrast {title} subtitle={description} {kind} />
 
 <style>
-    div {
-        position: absolute;
-        top: 0;
-        right: 0;
-    }
 </style>

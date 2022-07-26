@@ -134,6 +134,5 @@
 <style>
     div {
         max-width: 50%;
-        text-align: center;
     }
 </style>

@@ -5,31 +5,41 @@
     import Heading from "./lib/Heading.svelte";
     import ArchiveButtons from "./lib/ArchiveButtons.svelte";
     import AuthNotification from "./lib/AuthNotification.svelte";
-    import Login from "./lib/Login.svelte";
+    import Nav from "./lib/Nav.svelte";
+    import {
+        Column,
+        Content,
+        Grid,
+        Popover,
+        Row,
+    } from "carbon-components-svelte";
 </script>
 
-<main>
-    <Login />
-    <div class="content" align="center">
-        <Logo />
-        <Heading />
-
-        <VideoInput />
-
-        <ArchiveButtons />
-
-        <AuthNotification />
-    </div>
-</main>
+<Popover open align="top-right" style="top: 40px">
+    <AuthNotification />
+</Popover>
+<Nav />
+<Content>
+    <div style="padding: 20px" />
+    <Grid>
+        <Row>
+            <Column>
+                <Heading />
+                <Logo />
+            </Column>
+        </Row>
+        <Row>
+            <Column>
+                <VideoInput />
+            </Column>
+        </Row>
+    </Grid>
+</Content>
 
 <style>
     main {
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-
-    .content {
-        width: 80%;
     }
 </style>
