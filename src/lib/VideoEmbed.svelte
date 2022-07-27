@@ -1,10 +1,10 @@
 <script lang="ts">
     import { ImageLoader } from "carbon-components-svelte";
 
-    import { videoInfoStore, VideoInfo } from "./video";
+    import { videoInputInfoStore, VideoInfo } from "./video";
 
     let videoInfo: VideoInfo | null = null;
-    videoInfoStore.subscribe((info) => (videoInfo = info));
+    videoInputInfoStore.subscribe((info) => (videoInfo = info));
 </script>
 
 {#if videoInfo}

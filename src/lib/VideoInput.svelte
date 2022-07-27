@@ -10,7 +10,7 @@
     } from "carbon-components-svelte";
     import Notification from "./Notification.svelte";
     import { showNotification } from "./notifications";
-    import { videoInfoStore } from "./video";
+    import { videoInputInfoStore } from "./video";
 
     let qualities = [];
     let disabled = true;
@@ -105,7 +105,7 @@
             "hqdefault",
             "maxresdefault"
         );
-        videoInfoStore.update((_) => ({
+        videoInputInfoStore.update((_) => ({
             thumbnailUrl,
             title: info.title,
             uploader: info.author_name,
