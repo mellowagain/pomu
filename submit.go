@@ -236,7 +236,7 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	qualities, cached, err := GetVideoQualities(url)
+	qualities, cached, err := GetVideoQualities(url, false)
 
 	if err != nil {
 		sentry.CaptureException(err)

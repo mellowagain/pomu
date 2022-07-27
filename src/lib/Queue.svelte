@@ -31,7 +31,7 @@
 
     function getHoursMinutesInFuture(time: Date): [number, number] {
         let diff = new Date(time.getTime() - Date.now());
-        return [diff.getHours(), diff.getMinutes()];
+        return [diff.getUTCHours(), diff.getUTCMinutes()];
     }
 </script>
 

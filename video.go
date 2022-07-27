@@ -34,8 +34,23 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 		"youtube-dl get playlist",
 		sentry.TransactionName(
 			fmt.Sprintf("youtube-dl get playlist %s", p.request.VideoUrl)))
-
 	defer span.Finish()
+
+	// Check that we are trying to record a valid quality
+	if p.request.Quality <= 0 {
+		// Stream was queued ahead of time, select best quality
+		qualities, _, err := GetVideoQualities(p.request.VideoUrl, true)
+		if err != nil {
+			log.Panicln("Whilst trying to get playlist url, was unable to get qualities for video")
+			return "", err
+		}
+		for _, quality := range qualities {
+			if quality.Best {
+				log.Println("Whilst trying to get playlist url, automatically chose quality", quality.Code)
+				p.request.Quality = quality.Code
+			}
+		}
+	}
 
 	output := new(strings.Builder)
 
@@ -43,13 +58,19 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 	cmd.Stdout = output
 	cmd.Stderr = output
 
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+
+	// NOTE(emily): If the livestream has not started yet, ytdl will return 1
+	// We want to check first whether the live event WILL begin, and return the correct
+	// error
+	if strings.Contains(output.String(), "ERROR: This live event will begin in") {
+		return "", ErrorLivestreamNotStarted
+	}
+
+	if err != nil {
 		sentry.CaptureException(err)
 		log.Printf("cannot run youtube-dl: %s (output was %s)\n", err, output)
 		return "", err
-	}
-	if strings.Contains(output.String(), "ERROR: This live event will begin in") {
-		return "", ErrorLivestreamNotStarted
 	}
 
 	span.Finish()
@@ -221,6 +242,8 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 				log.Println("Failed record finish for", id)
 			}
 			return
+		} else if err == ErrorLivestreamNotStarted {
+			log.Println("Livestream has not started yet")
 		} else if err != nil {
 			log.Println("Failed checking livestream started:", err)
 			err = recordFailed(db, id)

@@ -23,7 +23,7 @@ type VideoQuality struct {
 	Best       bool   `json:"best"`
 }
 
-func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
+func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, error) {
 	if !isValidUrl(url) {
 		return nil, false, errors.New("invalid url")
 	}
@@ -31,7 +31,7 @@ func GetVideoQualities(url string) ([]VideoQuality, bool, error) {
 	videoID := ParseVideoID(url)
 	quality, exists := qualitiesCache.Get(videoID)
 
-	if quality != nil && exists {
+	if quality != nil && exists && !ignoreCache {
 		return quality.([]VideoQuality), true, nil
 	}
 
