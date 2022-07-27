@@ -14,6 +14,7 @@
         Row,
     } from "carbon-components-svelte";
     import VideoEmbed from "./lib/VideoEmbed.svelte";
+import Queue from "./lib/queue.svelte";
 </script>
 
 <Notifications />
@@ -31,6 +32,8 @@
                 <VideoInput />
             </Column>
         </Row>
-        <
+        <Row>
+            <Queue />
+        </Row>
     </Grid>
 </Content>
