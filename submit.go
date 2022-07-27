@@ -110,7 +110,16 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	var video Video
 	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(
-		&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished, &video.Finished, &video.Title, &video.ChannelName, &video.ChannelId, &video.Thumbnail, &video.Finished, &video.Length)
+		&video.Id,
+		pq.Array(&video.Submitters),
+		&video.Start,
+		&video.Finished,
+		&video.Title,
+		&video.ChannelName,
+		&video.ChannelId,
+		&video.Thumbnail,
+		&video.FileSize,
+		&video.Length)
 
 	var reschedule bool
 
@@ -136,7 +145,16 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if row.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished) != nil {
+		if err = row.Scan(&video.Id,
+			pq.Array(&video.Submitters),
+			&video.Start,
+			&video.Finished,
+			&video.Title,
+			&video.ChannelName,
+			&video.ChannelId,
+			&video.Thumbnail,
+			&video.FileSize,
+			&video.Length); err != nil {
 			sentry.CaptureException(err)
 			http.Error(w, "failed to create new video", http.StatusInternalServerError)
 			return
@@ -153,7 +171,17 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if err := statement.QueryRow(user.Id, startTime, video.Id).Scan(&video.Id, &video.Submitters, &video.Start, &video.Finished); err != nil {
+			if err := statement.QueryRow(user.Id, startTime, video.Id).
+				Scan(&video.Id,
+					pq.Array(&video.Submitters),
+					&video.Start,
+					&video.Finished,
+					&video.Title,
+					&video.ChannelName,
+					&video.ChannelId,
+					&video.Thumbnail,
+					&video.FileSize,
+					&video.Length); err != nil {
 				sentry.CaptureException(err)
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)
 				return

@@ -227,6 +227,7 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 			if err != nil {
 				log.Println("Failed record fail for", id)
 			}
+			return
 		}
 
 		log.Println("Waiting for", request.VideoUrl, "try=", try)

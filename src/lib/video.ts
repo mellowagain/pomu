@@ -1,9 +1,14 @@
 import { writable } from "svelte/store";
 
-export interface VideoInfo {
+export interface VideoInputInfo {
     title: string,
     thumbnailUrl: string,
     uploader: string,
 }
 
-export let videoInfoStore = writable<VideoInfo>();
+export let videoInputInfoStore = writable<VideoInputInfo>();
+
+
+export interface VideoInfo {
+
+}

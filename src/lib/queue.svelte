@@ -1,6 +1,4 @@
-<script lang="ts"></script>
-
+<script lang="ts">
+</script>
 
 <h1>Queue</h1>
-
-
