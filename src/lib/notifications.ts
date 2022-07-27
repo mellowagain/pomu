@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 
-interface StoredNotification {
+export interface StoredNotification {
     title: string;
     description: string;
     kind: string;

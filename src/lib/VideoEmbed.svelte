@@ -1,9 +1,9 @@
 <script lang="ts">
     import { ImageLoader } from "carbon-components-svelte";
 
-    import { videoInputInfoStore, VideoInfo } from "./video";
+    import { videoInputInfoStore, VideoInfo, VideoInputInfo } from "./video";
 
-    let videoInfo: VideoInfo | null = null;
+    let videoInfo: VideoInputInfo | null = null;
     videoInputInfoStore.subscribe((info) => (videoInfo = info));
 </script>
 

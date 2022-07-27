@@ -15,7 +15,7 @@
     } from "carbon-components-svelte";
     import { fade } from "svelte/transition";
     import VideoEmbed from "./lib/VideoEmbed.svelte";
-    import Queue from "./lib/queue.svelte";
+    import Queue from "./lib/Queue.svelte";
     import { currentPage, Page } from "./lib/app";
 
     let page = Page.Video;
@@ -40,9 +40,7 @@
                     </Column>
                 </Row>
             {:else if page == Page.Queue}
-                <Row>
-                    <Queue />
-                </Row>
+                <Queue />
             {/if}
         </div>
     </Grid>

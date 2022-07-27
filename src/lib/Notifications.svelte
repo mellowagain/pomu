@@ -3,14 +3,18 @@
     import { fade } from "svelte/transition";
 
     import Notification from "./Notification.svelte";
-    import { notifications, clearNotification } from "./notifications";
+    import {
+        notifications,
+        clearNotification,
+        StoredNotification,
+    } from "./notifications";
 
     let params = new URL(document.location).searchParams;
 
     let displayRegister = params.has("successRegister");
     let displayLogin = params.has("success");
 
-    let notifs;
+    let notifs: [number, StoredNotification][];
     notifications.subscribe((n) => {
         notifs = [...n.entries()];
     });
