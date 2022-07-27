@@ -1,14 +1,14 @@
 <script>
-    import {ImageLoader} from "carbon-components-svelte";
+    import { ImageLoader } from "carbon-components-svelte";
 </script>
 
 <div>
     <!-- TODO: Make src="/assets/pomu.png" work -->
-    <ImageLoader src="https://i.imgur.com/aH6F1Mh.png"></ImageLoader>
+    <ImageLoader src="https://i.imgur.com/aH6F1Mh.png" />
 </div>
 
 <style>
     div {
-        max-width: 20%;
+        max-width: 50%;
     }
 </style>

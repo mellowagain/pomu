@@ -1,29 +1,27 @@
 <script lang="ts">
     import {
         Button,
+        Column,
         Dropdown,
         Form,
         FormGroup,
         ImageLoader,
         TextInput,
     } from "carbon-components-svelte";
+    import Notification from "./Notification.svelte";
+    import { showNotification } from "./notifications";
+    import { videoInfoStore } from "./video";
 
     let qualities = [];
     let disabled = true;
     let streamUrl = "";
 
-    let thumbnailUrl = "";
-    let videoTitle = "";
-    let videoUploader = "";
     let selectedId = "0";
 
     let disableQualitiesDropdown = true;
 
     function clearVideoDisplay() {
         qualities = [];
-        thumbnailUrl = "";
-        videoTitle = "";
-        videoUploader = "";
         selectedId = "0";
         disableQualitiesDropdown = true;
     }
@@ -72,9 +70,19 @@
             method: "POST",
             body: JSON.stringify({
                 videoUrl: streamUrl,
-                quality: +selectedId
-            })
-        }).then(r => r.json()).catch(r => console.log(r));
+                quality: +selectedId,
+            }),
+        })
+            .then((r) => r.json())
+            .catch(async (e) => {
+                showNotification({
+                    title: "Failed to submit",
+                    description:
+                        "You need to login before being able to submit a video",
+                    kind: "error",
+                    timeout: 5000,
+                });
+            });
 
         console.log(response);
     }
@@ -87,52 +95,41 @@
                 clearVideoDisplay();
             });
 
-        thumbnailUrl = info.thumbnail_url.replaceAll(
+        let thumbnailUrl = info.thumbnail_url.replaceAll(
             "hqdefault",
             "maxresdefault"
         );
-        videoTitle = info.title;
-        videoUploader = info.author_name;
+        videoInfoStore.update((_) => ({
+            thumbnailUrl,
+            title: info.title,
+            uploader: info.author_name,
+        }));
     }
 </script>
 
-<div>
-    <Form on:submit={submitForm}>
-        <FormGroup>
-            <TextInput
-                labelText="Livestream url"
-                placeholder="https://youtube.com/watch?v=rnVfwYuK8sw"
-                on:change={resolveQualities}
-                bind:value={streamUrl}
-            />
+<Form on:submit={submitForm}>
+    <FormGroup>
+        <TextInput
+            labelText="Livestream url"
+            placeholder="https://youtube.com/watch?v=rnVfwYuK8sw"
+            on:change={resolveQualities}
+            bind:value={streamUrl}
+        />
 
-            <Dropdown
-                itemToString={(item) =>
-                    (item.best ? "[BEST] " : "") +
-                    item.text +
-                    " (id " +
-                    item.id +
-                    ")"}
-                disabled={disableQualitiesDropdown}
-                titleText="Quality"
-                bind:selectedId={selectedId}
-                items={qualities}
-            />
-        </FormGroup>
-
-        {#if thumbnailUrl.trim().length !== 0 && videoTitle.trim().length !== 0 && videoUploader.trim().length !== 0}
-            <ImageLoader src={thumbnailUrl} />
-            <p><b>{videoTitle}</b> by <b>{videoUploader}</b></p>
-        {/if}
-
-        <Button type="submit" disabled={streamUrl.trim().length === 0}
-            >Add to archive queue</Button
-        >
-    </Form>
-</div>
-
-<style>
-    div {
-        max-width: 50%;
-    }
-</style>
+        <Dropdown
+            itemToString={(item) =>
+                (item.best ? "[BEST] " : "") +
+                item.text +
+                " (id " +
+                item.id +
+                ")"}
+            disabled={disableQualitiesDropdown}
+            titleText="Quality"
+            bind:selectedId
+            items={qualities}
+        />
+    </FormGroup>
+    <Button type="submit" disabled={streamUrl.trim().length === 0}
+        >Add to archive queue</Button
+    >
+</Form>

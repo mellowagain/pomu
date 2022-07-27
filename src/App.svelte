@@ -4,7 +4,7 @@
     import Logo from "./lib/Logo.svelte";
     import Heading from "./lib/Heading.svelte";
     import ArchiveButtons from "./lib/ArchiveButtons.svelte";
-    import AuthNotification from "./lib/AuthNotification.svelte";
+    import Notifications from "./lib/Notifications.svelte";
     import Nav from "./lib/Nav.svelte";
     import {
         Column,
@@ -13,11 +13,10 @@
         Popover,
         Row,
     } from "carbon-components-svelte";
+    import VideoEmbed from "./lib/VideoEmbed.svelte";
 </script>
 
-<Popover open align="top-right" style="top: 40px">
-    <AuthNotification />
-</Popover>
+<Notifications />
 <Nav />
 <Content>
     <div style="padding: 20px" />
@@ -27,19 +26,10 @@
                 <Heading />
                 <Logo />
             </Column>
-        </Row>
-        <Row>
             <Column>
+                <VideoEmbed />
                 <VideoInput />
             </Column>
         </Row>
     </Grid>
 </Content>
-
-<style>
-    main {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
