@@ -8,6 +8,7 @@
         ImageLoader,
         SkipToContent,
     } from "carbon-components-svelte";
+    import { currentPage, Page } from "./app";
     import { user } from "./auth";
     import NavAvatar from "./NavAvatar.svelte";
 
@@ -15,12 +16,21 @@
 </script>
 
 <div>
-    <Header company="Pomu.app" href="/">
+    <Header
+        company="Pomu.app"
+        on:click={(_) => currentPage.update((_) => Page.Video)}
+    >
         <svelte:fragment slot="skip-to-content">
             <SkipToContent />
         </svelte:fragment>
-        <HeaderNavItem href="/queue" text="Queue" />
-        <HeaderNavItem href="/history" text="History" />
+        <HeaderNavItem
+            on:click={(_) => currentPage.update((_) => Page.Queue)}
+            text="Queue"
+        />
+        <HeaderNavItem
+            on:click={(_) => currentPage.update((_) => Page.History)}
+            text="History"
+        />
         <HeaderUtilities>
             {#await user then user}
                 <HeaderAction icon={NavAvatar}>

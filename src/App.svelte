@@ -13,8 +13,13 @@
         Popover,
         Row,
     } from "carbon-components-svelte";
+    import { fade } from "svelte/transition";
     import VideoEmbed from "./lib/VideoEmbed.svelte";
-import Queue from "./lib/queue.svelte";
+    import Queue from "./lib/queue.svelte";
+    import { currentPage, Page } from "./lib/app";
+
+    let page = Page.Video;
+    currentPage.subscribe((newPage) => (page = newPage));
 </script>
 
 <Notifications />
@@ -22,18 +27,23 @@ import Queue from "./lib/queue.svelte";
 <Content>
     <div style="padding: 20px" />
     <Grid>
-        <Row>
-            <Column>
-                <Heading />
-                <Logo />
-            </Column>
-            <Column>
-                <VideoEmbed />
-                <VideoInput />
-            </Column>
-        </Row>
-        <Row>
-            <Queue />
-        </Row>
+        <div transition:fade>
+            {#if page == Page.Video}
+                <Row>
+                    <Column>
+                        <Heading />
+                        <Logo />
+                    </Column>
+                    <Column>
+                        <VideoEmbed />
+                        <VideoInput />
+                    </Column>
+                </Row>
+            {:else if page == Page.Queue}
+                <Row>
+                    <Queue />
+                </Row>
+            {/if}
+        </div>
     </Grid>
 </Content>
