@@ -66,25 +66,31 @@
     async function submitForm(event: any) {
         event.preventDefault();
 
-        let response = await fetch(`/api/submit`, {
-            method: "POST",
-            body: JSON.stringify({
-                videoUrl: streamUrl,
-                quality: +selectedId,
-            }),
-        })
-            .then((r) => r.json())
-            .catch(async (e) => {
-                showNotification({
-                    title: "Failed to submit",
-                    description:
-                        "You need to login before being able to submit a video",
-                    kind: "error",
-                    timeout: 5000,
-                });
+        try {
+            let response = await fetch(`/api/submit`, {
+                method: "POST",
+                body: JSON.stringify({
+                    videoUrl: streamUrl,
+                    quality: +selectedId,
+                }),
+            }).then((r) => r.json());
+        } catch (e) {
+            showNotification({
+                title: "Failed to submit",
+                description:
+                    "You need to login before being able to submit a video",
+                kind: "error",
+                timeout: 5000,
             });
+            return;
+        }
 
-        console.log(response);
+        showNotification({
+            title: "Successfully submitted video",
+            description: "Recording will begin when the stream starts.",
+            kind: "success",
+            timeout: 5000,
+        });
     }
 
     async function fetchVideoInfo(url: string) {

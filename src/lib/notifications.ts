@@ -20,7 +20,6 @@ export function showNotification(notification: StoredNotification) {
     });
 }
 export function clearNotification(id: number) {
-    console.log("clearing ", id);
     notifications.update(notifications => {
         notifications.delete(id);
         return notifications;

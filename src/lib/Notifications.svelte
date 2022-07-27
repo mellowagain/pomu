@@ -12,7 +12,6 @@
 
     let notifs;
     notifications.subscribe((n) => {
-        console.log(n);
         notifs = [...n.entries()];
     });
 </script>
