@@ -2,19 +2,22 @@
     import {
         Column,
         ImageLoader,
-        InlineNotification, Link,
+        InlineNotification,
+        Link,
         Loading,
         OutboundLink,
         Row,
         Tag,
-        Tile, Tooltip
+        Tile,
+        Tooltip,
     } from "carbon-components-svelte";
 
     import { readable, writable } from "svelte/store";
     import { showNotification } from "./notifications";
+    import dayjs from "dayjs";
     import type { VideoInfo } from "./video";
-    import {Recording} from "carbon-icons-svelte";
-    import Countdown from 'svelte-countdown/src/index.js';
+    import { Recording } from "carbon-icons-svelte";
+    import Countdown from "svelte-countdown/src/Countdown.svelte";
 
     let loading = true;
 
@@ -83,7 +86,9 @@
                 </Link>
                 <br />
                 <h5>
-                    <OutboundLink href="https://youtube.com/channel/{info.channelId}">
+                    <OutboundLink
+                        href="https://youtube.com/channel/{info.channelId}"
+                    >
                         {info.channelName}
                     </OutboundLink>
                 </h5>
@@ -100,20 +105,44 @@
                 </p>
                 <br />
 
-                <Countdown from={info.scheduledStart} dateFormat="YYYY-MM-DDTHH:mm:ssZ" let:remaining>
+                <Countdown
+                    from={dayjs(info.scheduledStart)}
+                    dateFormat="x"
+                    let:remaining
+                >
                     {#if !remaining.done}
                         <p>
                             Starts in
                             {#if remaining.days > 0}
-                                <span>{remaining.days + (remaining.months * 30)} day{remaining.days === 1 ? "" : "s"}</span>
+                                <span
+                                    >{remaining.days + remaining.months * 30} day{remaining.days ===
+                                    1
+                                        ? ""
+                                        : "s"}</span
+                                >
                             {/if}
 
                             {#if remaining.hours > 0}
-                                <span>{remaining.hours} hour{remaining.hours === 1 ? "" : "s"}</span>
+                                <span
+                                    >{remaining.hours} hour{remaining.hours ===
+                                    1
+                                        ? ""
+                                        : "s"}</span
+                                >
                             {/if}
 
-                            <span>{remaining.minutes} minute{remaining.minute === 1 ? "" : "s"}</span>
-                            <span>{remaining.seconds} second{remaining.seconds === 1 ? "" : "s"}</span>
+                            <span
+                                >{remaining.minutes} minute{remaining.minute ===
+                                1
+                                    ? ""
+                                    : "s"}</span
+                            >
+                            <span
+                                >{remaining.seconds} second{remaining.seconds ===
+                                1
+                                    ? ""
+                                    : "s"}</span
+                            >
                         </p>
                     {:else}
                         <Tag icon={Recording} type="red">Live</Tag>
@@ -131,12 +160,13 @@
 {/each}
 
 {#if $queue.size === 0 && !loading}
-    <InlineNotification lowContrast
-                        kind="info"
-                        subtitle="There are currently no streams in the queue"
-                        on:close={(e) => {
-                            e.preventDefault();
-                        }}
+    <InlineNotification
+        lowContrast
+        kind="info"
+        subtitle="There are currently no streams in the queue"
+        on:close={(e) => {
+            e.preventDefault();
+        }}
     />
 {/if}
 

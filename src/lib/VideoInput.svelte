@@ -8,6 +8,7 @@
         ImageLoader,
         TextInput,
     } from "carbon-components-svelte";
+    import { acceptOnlyOkResponse, ApiError } from "./api";
     import Notification from "./Notification.svelte";
     import { showNotification } from "./notifications";
     import { videoInputInfoStore } from "./video";
@@ -67,21 +68,37 @@
         event.preventDefault();
 
         try {
-            let response = await fetch(`/api/submit`, {
+            await fetch(`/api/submit`, {
                 method: "POST",
                 body: JSON.stringify({
                     videoUrl: streamUrl,
                     quality: +selectedId,
                 }),
-            }).then((r) => r.json());
+            })
+                .then(acceptOnlyOkResponse)
+                .then((r) => r.json());
         } catch (e) {
-            showNotification({
-                title: "Failed to submit",
-                description:
-                    "You need to login before being able to submit a video",
-                kind: "error",
-                timeout: 5000,
-            });
+            if ("status" in e && "why" in e) {
+                showNotification({
+                    title:
+                        "Failed to submit video (" +
+                        e.status +
+                        " " +
+                        e.statusText +
+                        ")",
+                    description: "Api returned '" + e.why + "'.",
+                    kind: "error",
+                    timeout: 5000,
+                });
+            } else {
+                showNotification({
+                    title: "Failed to submit video (" + e.status + ")",
+                    description: "Unknown error.",
+                    kind: "error",
+                    timeout: 5000,
+                });
+            }
+
             return;
         }
 

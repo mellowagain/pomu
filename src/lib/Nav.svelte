@@ -9,7 +9,7 @@
         SkipToContent,
     } from "carbon-components-svelte";
     import { currentPage, Page } from "./app";
-    import { user } from "./auth";
+    import { user } from "./api";
     import NavAvatar from "./NavAvatar.svelte";
 
     let isOpen = false;

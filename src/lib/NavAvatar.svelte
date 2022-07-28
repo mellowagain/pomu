@@ -5,7 +5,7 @@
         ImageLoader,
     } from "carbon-components-svelte";
 
-    import { user } from "./auth";
+    import { user } from "./api";
 </script>
 
 {#await user then user}
