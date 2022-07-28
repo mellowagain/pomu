@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "carbon-icons-svelte": "^11.2.0",
-    "svelte-countdown": "^1.1.2"
+    "dayjs": "^1.11.4",
+    "svelte-countdown": "git+https://github.com/emily33901/svelte-countdown.git"
   }
 }
