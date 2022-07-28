@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"pomu/hls"
@@ -260,12 +259,13 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 
 func (app *Application) Log(w http.ResponseWriter, r *http.Request) {
 	ytUrl := r.URL.Query().Get("url")
-	parsedUrl, err := url.Parse(ytUrl)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	var id string
+	if len(ytUrl) == 0 {
+		id = r.URL.Query().Get("id")
+	} else {
+		id = ParseVideoID(ytUrl)
 	}
-	if log, ok := ffmpegLogs[parsedUrl.Query().Get("v")]; ok {
+	if log, ok := ffmpegLogs[id]; ok {
 		_, err := w.Write([]byte(log.String()))
 		if err != nil {
 			http.Error(w, "failed to write output bytes", http.StatusInternalServerError)

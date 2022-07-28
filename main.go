@@ -84,7 +84,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/submit", app.SubmitVideo).Methods("POST")
 	r.HandleFunc("/api/queue", app.GetQueue).Methods("GET")
 	r.HandleFunc("/api/history", app.GetHistory).Methods("GET")
-	r.HandleFunc("/api/log", app.Log).Methods("GET")
+	r.HandleFunc("/api/logz", app.Log).Methods("GET")
 
 	// OAuth
 	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")

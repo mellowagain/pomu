@@ -16,6 +16,7 @@
     import { fade } from "svelte/transition";
     import VideoEmbed from "./lib/VideoEmbed.svelte";
     import Queue from "./lib/Queue.svelte";
+    import History from "./lib/History.svelte";
     import { currentPage, Page } from "./lib/app";
 
     let page = Page.Video;
@@ -41,6 +42,8 @@
                 </Row>
             {:else if page == Page.Queue}
                 <Queue />
+            {:else if page == Page.History}
+                <History />
             {/if}
         </div>
     </Grid>

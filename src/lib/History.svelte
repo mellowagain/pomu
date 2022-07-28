@@ -8,10 +8,10 @@
 
     let loading = true;
 
-    let queue = readable<Map<string, VideoInfo>>(new Map(), (set) => {
+    let history = readable<Map<string, VideoInfo>>(new Map(), (set) => {
         const f = async () => {
             try {
-                let results = await fetch("/api/queue").then((r) => r.json());
+                let results = await fetch("/api/history").then((r) => r.json());
                 // transform from array which contains id into id -> array map
                 let map = new Map();
                 for (let r of results) {
@@ -23,7 +23,7 @@
                 loading = false;
             } catch (e) {
                 showNotification({
-                    title: "Failed to get queue",
+                    title: "Failed to get history",
                     description: e.text,
                     kind: "error",
                     timeout: 5000,
@@ -45,10 +45,10 @@
 
 <Row>
     <h1>
-        Queue
+        History
 
-        {#if $queue.size > 0 && !loading}
-            ({$queue.size})
+        {#if $history.size > 0 && !loading}
+            ({$history.size})
         {/if}
     </h1>
 
@@ -57,20 +57,17 @@
     {/if}
 </Row>
 
-{#each [...$queue.entries()] as [id, info] (id)}
+{#each [...$history.entries()] as [id, info] (id)}
     <VideoEntry {info} />
 {/each}
 
-{#if $queue.size === 0 && !loading}
+{#if $history.size === 0 && !loading}
     <InlineNotification
         lowContrast
         kind="info"
-        subtitle="There are currently no streams in the queue"
+        subtitle="No streams have finished recording."
         on:close={(e) => {
             e.preventDefault();
         }}
     />
 {/if}
-
-<style>
-</style>
