@@ -19,5 +19,9 @@
     "tslib": "^2.3.1",
     "typescript": "^4.5.4",
     "vite": "^2.9.9"
+  },
+  "dependencies": {
+    "carbon-icons-svelte": "^11.2.0",
+    "svelte-countdown": "^1.1.2"
   }
 }

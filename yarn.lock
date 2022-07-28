@@ -133,6 +133,11 @@ carbon-components-svelte@^0.66.0:
   dependencies:
     flatpickr "4.6.9"
 
+carbon-icons-svelte@^11.2.0:
+  version "11.2.0"
+  resolved "https://registry.yarnpkg.com/carbon-icons-svelte/-/carbon-icons-svelte-11.2.0.tgz#4b791c5cdb9b3b8b52758475a5b2e4ca96062639"
+  integrity sha512-nbqCEKoZA5EzT2Lr8vNYnfWcDl5GnFFLnbD861U32g9cNe7D7nmQKx4T+goFp5AoY60OyAgKUNJov8LwNEkhbg==
+
 chokidar@^3.4.1:
   version "3.5.3"
   resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-3.5.3.tgz#1cf37c8707b932bd1af1ae22c0432e2acd1903bd"
@@ -152,6 +157,11 @@ concat-map@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
   integrity sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==
+
+dayjs@1.10.1:
+  version "1.10.1"
+  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.10.1.tgz#114f678624842035396667a24eb1436814bc16fd"
+  integrity sha512-2xg7JrHQeLBQFkvTumLoy62x1siyeocc98QwjtURgvRqOPYmAkMUdmSjrOA+MlmL6QMQn5MUhDf6rNZNuPc1LQ==
 
 debug@^4.3.4:
   version "4.3.4"
@@ -667,6 +677,13 @@ svelte-check@^2.2.7:
     sade "^1.7.4"
     svelte-preprocess "^4.0.0"
     typescript "*"
+
+svelte-countdown@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/svelte-countdown/-/svelte-countdown-1.1.2.tgz#31995bbdc5a55b9fe5c6e991e47f73b6d2f11b22"
+  integrity sha512-datUfbRtGCp+7OwIRcbW9tbIwlkN7KiJp9Mg01Na9HgSQrLG0knsD/xjaIVKPovxY8xF0yOrbPEz+bT/BS9EBQ==
+  dependencies:
+    dayjs "1.10.1"
 
 svelte-hmr@^0.14.12:
   version "0.14.12"
