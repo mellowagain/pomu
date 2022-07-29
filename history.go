@@ -52,7 +52,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}(rows)
 
-	var videos []Video
+	videos := []Video{}
 
 	for rows.Next() {
 		var video Video
