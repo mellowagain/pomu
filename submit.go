@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"pomu/s3"
 	"strings"
 	"time"
 
@@ -130,6 +133,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		thumbnailUrl, _ := saveThumbnail(videoId, videoMetadata.Snippet.Thumbnails.Maxres.Url)
+
 		statement, err := tx.Prepare("insert into videos (id, submitters, start, title, channel_name, channel_id, thumbnail) values ($1, $2, $3, $4, $5, $6, $7) returning *")
 
 		if err != nil {
@@ -137,7 +142,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
 			return
 		}
-		row := statement.QueryRow(videoId, pq.Array([]string{user.Id}), startTime, videoMetadata.Snippet.Title, videoMetadata.Snippet.ChannelTitle, videoMetadata.Snippet.ChannelId, videoMetadata.Snippet.Thumbnails.Maxres.Url)
+
+		row := statement.QueryRow(videoId, pq.Array([]string{user.Id}), startTime, videoMetadata.Snippet.Title, videoMetadata.Snippet.ChannelTitle, videoMetadata.Snippet.ChannelId, thumbnailUrl)
 
 		if err := row.Err(); err != nil {
 			sentry.CaptureException(err)
@@ -257,4 +263,28 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 		sentry.CaptureException(err)
 		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
 	}
+}
+
+// Saves a thumbnail to S3
+func saveThumbnail(id string, url string) (string, error) {
+	s3Client, err := s3.New(os.Getenv("S3_BUCKET"))
+
+	if err != nil {
+		log.Printf("[warn] failed to create s3 client in order to upload thumbnail: %s\n", err)
+		return url, err
+	}
+
+	response, err := http.Get(url)
+
+	if err != nil {
+		log.Printf("[warn] failed to get thumbnail from youtube: %s\n", err)
+		return url, err
+	}
+
+	if err := s3Client.Upload(fmt.Sprintf("%s.jpg", id), response.Body); err != nil {
+		log.Println("s3 thumbnail upload failed:", err)
+		return url, err
+	}
+
+	return fmt.Sprintf("%s/%s.jpg", os.Getenv("S3_DOWNLOAD_URL"), id), nil
 }
