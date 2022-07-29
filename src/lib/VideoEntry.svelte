@@ -111,6 +111,13 @@
                             kind="tertiary"
                             on:click={(_) => (logModal = true)}
                         />
+                    {:catch}
+                        <Button
+                            icon={Report}
+                            iconDescription="FFMpeg Log"
+                            kind="tertiary"
+                            disabled
+                        />
                     {/await}
                     {#if info.finished}
                         {#await missing}
