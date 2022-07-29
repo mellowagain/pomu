@@ -1,18 +1,30 @@
 <script lang="ts">
     import {
+        Button,
+        CodeSnippet,
         Column,
         ImageLoader,
         Link,
+        Modal,
         OutboundLink,
+        Popover,
         Row,
         Tag,
         Tile,
         Tooltip,
+        TooltipIcon,
     } from "carbon-components-svelte";
     import Countdown from "svelte-countdown/src";
     import dayjs from "dayjs";
-    import { Recording } from "carbon-icons-svelte";
+    import {
+        CloudDownload,
+        Recording,
+        Report,
+        UserMultiple,
+        Warning,
+    } from "carbon-icons-svelte";
     import type { VideoInfo } from "./video";
+    import VideoCountdown from "./VideoCountdown.svelte";
 
     export let info: VideoInfo;
 
@@ -21,8 +33,20 @@
             .then((r) => r.text())
             .catch((_) => "no log available");
 
+        result = result
+            .replaceAll("frame=", "\nframe=")
+            .replaceAll("[mpegts", "\n[mpegts");
         return result;
     })();
+
+    let missing = (async () => {
+        let result = await fetch(info.downloadUrl, { method: "HEAD" });
+        if (result.status == 404) throw 404;
+        return;
+    })();
+
+    let logModal = false;
+    let submittersModal = false;
 </script>
 
 <Tile style="margin: 20px">
@@ -45,81 +69,84 @@
                 </OutboundLink>
             </h5>
         </Column>
-        <Column>
-            {#if !info.finished}
-                <p>
-                    {#if Date.now() > new Date(info.scheduledStart).getTime()}
-                        Live since
-                    {:else}
-                        Scheduled for
-                    {/if}
+        <info-container>
+            <Column>
+                {#if !info.finished}
+                    <p>
+                        {#if Date.now() > new Date(info.scheduledStart).getTime()}
+                            Live since
+                        {:else}
+                            Scheduled for
+                        {/if}
 
-                    {new Date(info.scheduledStart).toTimeString()}
-                </p>
-                <br />
+                        {new Date(info.scheduledStart).toTimeString()}
+                    </p>
+                    <br />
+                    <VideoCountdown from={info.scheduledStart} />
+                {:else}
+                    <p>Livestream finished.</p>
+                {/if}
 
-                <Countdown
-                    from={dayjs(info.scheduledStart)}
-                    dateFormat="x"
-                    let:remaining
-                >
-                    {#if !remaining.done}
-                        <p>
-                            Starts in
-                            {#if remaining.days > 0}
-                                <span
-                                    >{remaining.days + remaining.months * 30} day{remaining.days ===
-                                    1
-                                        ? ""
-                                        : "s"}</span
-                                >
-                            {/if}
-
-                            {#if remaining.hours > 0}
-                                <span
-                                    >{remaining.hours} hour{remaining.hours ===
-                                    1
-                                        ? ""
-                                        : "s"}</span
-                                >
-                            {/if}
-
-                            <span
-                                >{remaining.minutes} minute{remaining.minute ===
-                                1
-                                    ? ""
-                                    : "s"}</span
+                <buttons>
+                    <br />
+                    <Button
+                        icon={UserMultiple}
+                        iconDescription="Submitters"
+                        kind="tertiary"
+                        on:click={(_) => (submittersModal = true)}
+                    />
+                    <Button
+                        icon={Report}
+                        iconDescription="FFMpeg Log"
+                        kind="tertiary"
+                        on:click={(_) => (logModal = true)}
+                    />
+                    {#if info.finished}
+                        {#await missing}
+                            <Button skeleton />
+                        {:then}
+                            <Button
+                                icon={CloudDownload}
+                                href={info.downloadUrl}
                             >
-                            <span
-                                >{remaining.seconds} second{remaining.seconds ===
-                                1
-                                    ? ""
-                                    : "s"}</span
-                            >
-                        </p>
-                    {:else}
-                        <Tag icon={Recording} type="red">Live</Tag>
+                                Download
+                            </Button>
+                        {:catch}
+                            <Button icon={CloudDownload} disabled>
+                                Not found
+                            </Button>
+                        {/await}
                     {/if}
-                </Countdown>
-            {:else}
-                <p>Livestream finished.</p>
-            {/if}
-
-            <br />
-
-            <Tooltip triggerText="FFMpeg Log">
-                {#await log then log}
-                    <pre>{log}</pre>
-                {/await}
-            </Tooltip>
-
-            <br />
-
-            <Tooltip triggerText="Submitters">
-                {#each info.submitters as submitter}
-                    /{submitter}/
-                {/each}
-            </Tooltip>
-        </Column>
+                </buttons>
+            </Column>
+        </info-container>
     </Row>
 </Tile>
+
+<Modal bind:open={logModal} size="lg" passiveModal modalHeading={"FFMpeg Log"}>
+    {#await log then log}
+        <CodeSnippet type="multi" expanded>
+            {log}
+        </CodeSnippet>
+    {/await}
+</Modal>
+
+<Modal
+    bind:open={submittersModal}
+    size="sm"
+    passiveModal
+    modalHeading={"Submitted by"}
+>
+    {#each info.submitters as submitter}
+        /{submitter}/
+    {/each}
+</Modal>
+
+<style>
+    info-container {
+        position: relative;
+    }
+    buttons {
+        display: block;
+    }
+</style>
