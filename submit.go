@@ -169,7 +169,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		reschedule = true
 	} else {
 		if !slices.Contains(video.Submitters, user.Id) {
-			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where $3 returning *")
+			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where id = $3 returning *")
 
 			if err != nil {
 				sentry.CaptureException(err)
@@ -189,6 +189,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 					&video.FileSize,
 					&video.Length); err != nil {
 				sentry.CaptureException(err)
+				log.Println(err)
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)
 				return
 			}
