@@ -128,7 +128,7 @@ func recordFinished(db *sql.DB, id string, size int64) error {
 	length := videoLengthFromLog(id)
 
 	_, err = tx.Exec(
-		"update videos set finished = true, file_size = $1, length = $2 where id = $3", size, int(length.Seconds()), id)
+		"update videos set finished = true, file_size = $1, video_length = $2 where id = $3", size, int(length.Seconds()), id)
 
 	if err != nil {
 		return err
