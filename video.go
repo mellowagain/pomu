@@ -258,7 +258,19 @@ func record(request VideoRequest) (size int64, err error) {
 
 	<-finished
 	log.Println("record finished")
+	go uploadLog(s3, id)
 	return <-sizeWritten, nil
+}
+
+func uploadLog(s3 *s3.Client, id string) {
+	ffmpegLog := ffmpegLogs[id].String()
+
+	err := s3.Upload(fmt.Sprintf("%s.log", id), strings.NewReader(ffmpegLog))
+	if err != nil {
+		log.Println("uploadLog: s3.Upload2():", err)
+		sentry.CaptureException(err)
+		return
+	}
 }
 
 func StartRecording(db *sql.DB, request VideoRequest) {
