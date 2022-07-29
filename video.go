@@ -21,13 +21,19 @@ import (
 )
 
 type ytdlRemotePlaylist struct {
-	request VideoRequest
+	request   VideoRequest
+	cachedUrl string
+	cacheTime time.Time
 }
 
 // ErrorLivestreamNotStarted indicates that the livestream has not started
 var ErrorLivestreamNotStarted = errors.New("livestream has not started")
 
 func (p *ytdlRemotePlaylist) Get() (string, error) {
+	if time.Until(p.cacheTime) < (time.Minute * 10) {
+		return p.cachedUrl, nil
+	}
+
 	span := sentry.StartSpan(
 		context.Background(),
 		"youtube-dl get playlist",
@@ -79,6 +85,10 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 		log.Printf("Expected m3u8 output, received %s\n", stringOutput)
 		return "", errors.New("expected m3u8")
 	}
+
+	p.cachedUrl = stringOutput
+	p.cacheTime = time.Now()
+
 	return stringOutput, nil
 }
 
@@ -87,7 +97,7 @@ var _ hls.RemotePlaylist = (*ytdlRemotePlaylist)(nil)
 var ffmpegLogs map[string]*strings.Builder = make(map[string]*strings.Builder)
 
 func hasLivestreamStarted(request VideoRequest) (bool, error) {
-	_, err := (&ytdlRemotePlaylist{request}).Get()
+	_, err := (&ytdlRemotePlaylist{request, "", time.Time{}}).Get()
 	if err == ErrorLivestreamNotStarted {
 		return false, nil
 	} else if err != nil {
@@ -182,7 +192,7 @@ func record(request VideoRequest) (size int64, err error) {
 	go func() {
 		hlsClientPlaylistSpan := span.StartChild("hls-client playlist")
 		defer hlsClientPlaylistSpan.Finish()
-		hlsClient.Playlist(&ytdlRemotePlaylist{request})
+		hlsClient.Playlist(&ytdlRemotePlaylist{request, "", time.Time{}})
 	}()
 
 	// Start the video muxer
