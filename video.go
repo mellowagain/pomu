@@ -196,6 +196,7 @@ func record(request VideoRequest) (size int64, err error) {
 		return 0, errors.New("failed to start ffmpeg")
 	}
 	finished := make(chan struct{})
+	defer close(finished)
 
 	s3, err := s3.New(os.Getenv("S3_BUCKET"))
 	if err != nil {
@@ -204,6 +205,7 @@ func record(request VideoRequest) (size int64, err error) {
 	}
 
 	sizeWritten := make(chan int64)
+	defer close(sizeWritten)
 
 	go func() {
 		muxerSpan := span.StartChild("muxer-uploader loop")
@@ -217,9 +219,9 @@ func record(request VideoRequest) (size int64, err error) {
 				log.Println("s3.Upload2():", err)
 				sentry.CaptureException(err)
 				return
-			} else {
-				log.Println("s3 Upload successfully finished")
 			}
+
+			log.Println("s3 Upload successfully finished")
 		}()
 
 		log.Println("Begin copying")
@@ -230,8 +232,12 @@ func record(request VideoRequest) (size int64, err error) {
 			sentry.CaptureException(err)
 		}
 		log.Println("Finished reading from ffmpeg: ", size)
-		sizeWritten <- size
+		// NOTE(emily): Must close first before writing.
+		// sizeWritten <- size will block until its read
+		// but it wont be read until s3 finishes, which is after the writer
+		// has closed.
 		_ = writer.CloseWithError(io.EOF)
+		sizeWritten <- size
 	}()
 
 	go func() {
