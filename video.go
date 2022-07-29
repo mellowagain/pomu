@@ -21,18 +21,21 @@ import (
 )
 
 type ytdlRemotePlaylist struct {
-	request   VideoRequest
-	cachedUrl string
-	cacheTime time.Time
+	request       VideoRequest
+	cachedUrl     string
+	cacheDeadline time.Time
 }
 
 // ErrorLivestreamNotStarted indicates that the livestream has not started
 var ErrorLivestreamNotStarted = errors.New("livestream has not started")
 
 func (p *ytdlRemotePlaylist) Get() (string, error) {
-	if time.Until(p.cacheTime) < (time.Minute * 10) {
+	cacheRemaining := time.Until(p.cacheDeadline)
+	if cacheRemaining > 0 {
 		return p.cachedUrl, nil
 	}
+
+	log.Println("Getting playlist url for", p.request.VideoUrl)
 
 	span := sentry.StartSpan(
 		context.Background(),
@@ -87,7 +90,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 	}
 
 	p.cachedUrl = stringOutput
-	p.cacheTime = time.Now()
+	p.cacheDeadline = time.Now().Add(10 * time.Minute)
 
 	return stringOutput, nil
 }
