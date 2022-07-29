@@ -29,14 +29,16 @@
     export let info: VideoInfo;
 
     let log = (async () => {
-        let result = await fetch("/api/logz?id=" + info.id)
-            .then((r) => r.text())
-            .catch((_) => "no log available");
+        let result = await fetch("/api/logz?id=" + info.id);
+        if (result.status != 200) {
+            throw "no log";
+        }
 
-        result = result
+        let text = await result.text();
+
+        return text
             .replaceAll("frame=", "\nframe=")
             .replaceAll("[mpegts", "\n[mpegts");
-        return result;
     })();
 
     let missing = (async () => {
@@ -95,12 +97,21 @@
                         kind="tertiary"
                         on:click={(_) => (submittersModal = true)}
                     />
-                    <Button
-                        icon={Report}
-                        iconDescription="FFMpeg Log"
-                        kind="tertiary"
-                        on:click={(_) => (logModal = true)}
-                    />
+                    {#await log}
+                        <Button
+                            icon={Report}
+                            iconDescription="FFMpeg Log"
+                            kind="tertiary"
+                            disabled
+                        />
+                    {:then}
+                        <Button
+                            icon={Report}
+                            iconDescription="FFMpeg Log"
+                            kind="tertiary"
+                            on:click={(_) => (logModal = true)}
+                        />
+                    {/await}
                     {#if info.finished}
                         {#await missing}
                             <Button skeleton />
