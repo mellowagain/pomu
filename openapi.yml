@@ -1,0 +1,234 @@
+openapi: 3.0.3
+
+info:
+  title: pomu.app API
+  version: 0.0.1
+  description: Public API for pomu.app
+  contact:
+    name: General inqueries regarding API
+    email: mari@pomu.app
+    url: https://pomu.app
+  license:
+    name: BSD 3-Clause
+    url: https://github.com/mellowagain/pomu/blob/main/LICENSE.txt
+
+servers:
+  - url: https://pomu.app/api
+    description: Production
+  - url: https://dev.pomu.app/api
+    description: Development instance
+
+components:
+  schemas:
+    video:
+      type: object
+      required:
+        - id
+        - submitters
+        - scheduledStart
+        - finished
+        - title
+        - channelName
+        - channelId
+        - thumbnail
+      properties:
+        id:
+          type: string
+          description: Video ID
+        submitters:
+          type: array
+          description: List of user IDs which have submitted this video to the queue
+          items:
+            type: string
+        scheduledStart:
+          type: string
+          format: date-time
+          description: Scheduled start of livestream
+        finished:
+          type: boolean
+          description: Whenever the livestream has finished already
+        title:
+          type: string
+          description: Livestream title
+        channelName:
+          type: string
+          description: Name of channel which is streaming this livestream
+        channelId:
+          type: string
+          description: Channel ID of channel which is streaming this livestream
+        thumbnail:
+          type: string
+          description: URL to maximum quality thumbnail available for livestream
+        downloadUrl:
+          type: string
+          description: URL where archive is available for download
+        fileSizeBytes:
+          type: number
+          description: Archive file size in bytes
+        length:
+          type: number
+          description: Length of livestream in seconds
+
+paths:
+  /:
+    get:
+      operationId: apiOverview
+      description: Returns general API information
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - app
+                  - documentation
+                  - repository
+                  - commit
+                properties:
+                  app:
+                    type: string
+                    description: Service which is running
+                  documentation:
+                    type: string
+                    description: URL to API documentation
+                  repository:
+                    type: string
+                    description: URL to code repository
+                  commit:
+                    type: string
+                    description: Git SHA-1 of commit which is deployed
+  /qualities:
+    get:
+      operationId: PeekForQualities
+      description: Get list of available qualities for stream
+      parameters:
+        - name: url
+          in: query
+          description: YouTube url of live stream for which qualities should be peeked
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  required:
+                    - code
+                    - resolution
+                    - best
+                  properties:
+                    code:
+                      type: number
+                      description: Numeric ID of the quality
+                    resolution:
+                      type: string
+                      description: Human-readable resolution of the quality
+                    best:
+                      type: boolean
+                      description: Whenever this is the best available quality (both audio and video)
+  /submit:
+    post:
+      operationId: SubmitVideo
+      description: Submits a livestream to the archiving queue
+      requestBody:
+        required: true
+        description: Livestream submission payload
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - videoUrl
+                - quality
+              properties:
+                videoUrl:
+                  type: string
+                  description: YouTube url of live stream which should be added to queue
+                quality:
+                  type: number
+                  description: Numeric ID of the quality in which the live stream should be archived
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/video"
+  /queue:
+    get:
+      operationId: GetQueue
+      description: Gets list of currently queued livestreams (live or upcoming)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/video"
+  /history:
+    get:
+      operationId: GetHistory
+      description: Gets list of archived livestreams
+      parameters:
+        - name: page
+          in: query
+          description: Page to display
+          schema:
+            type: number
+            additionalProperties:
+              minimum: 0
+              default: 0
+        - name: limit
+          in: query
+          description: Amount of livestreams to display per page
+          schema:
+            type: number
+            additionalProperties:
+              maximum: 100
+              default: 25
+        - name: unfinished
+          in: query
+          description: Whenever unfinished livestreams (live or upcoming) should be displayed
+          schema:
+            type: boolean
+            additionalProperties:
+              default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/video"
+  /logz:
+    get:
+      operationId: Log
+      description: Get ffmpeg log for a livestream which is currently being archived
+      parameters:
+        - name: url
+          in: query
+          description: YouTube url of livestream for which ffmpeg logs should be returned
+          schema:
+            type: string
+        - name: id
+          in: query
+          description: Video ID of livestream for which ffmpeg logs should be returned
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
