@@ -97,6 +97,27 @@ func hasLivestreamStarted(request VideoRequest) (bool, error) {
 	return true, nil
 }
 
+func videoLengthFromLog(id string) time.Duration {
+	// NOTE(emily): Here we can get the video length by looking at the ffmpeg log
+	logString := strings.TrimSpace(ffmpegLogs[id].String())
+	timeStart := strings.LastIndex(logString, "time=") + len("time=")
+	timeEnd := strings.Index(logString[timeStart:], " ")
+
+	timeStr := logString[timeStart : timeStart+timeEnd]
+	// replace punctuation with their respective time units
+	timeStr = strings.Replace(timeStr, ":", "h", 1)
+	timeStr = strings.Replace(timeStr, ":", "m", 1)
+	timeStr = strings.Replace(timeStr, ".", "s", 1)
+	timeStr = timeStr + "ms"
+
+	duration, err := time.ParseDuration(timeStr)
+	if err != nil {
+		log.Println("Failed to parse duration from ffmpeg log")
+	}
+
+	return duration
+}
+
 func recordFinished(db *sql.DB, id string, size int64) error {
 	tx, err := db.Begin()
 
@@ -104,7 +125,10 @@ func recordFinished(db *sql.DB, id string, size int64) error {
 		return err
 	}
 
-	_, err = tx.Exec("update videos set finished = true, file_size = $1 where id = $2", size, id)
+	length := videoLengthFromLog(id)
+
+	_, err = tx.Exec(
+		"update videos set finished = true, file_size = $1, length = $2 where id = $3", size, int(length.Seconds()), id)
 
 	if err != nil {
 		return err
