@@ -18,12 +18,14 @@ type Segment struct {
 }
 
 type Client struct {
-	client   *http.Client
-	cache    *lru.Cache
-	Segments chan Segment
-	done     bool
-	lastSeq  int
-	noChange int
+	client              *http.Client
+	cache               *lru.Cache
+	Segments            chan Segment
+	playlistUrl         string
+	playlistUrlDeadline time.Time
+	done                bool
+	lastSeq             int
+	noChange            int
 }
 
 type RemotePlaylist interface {
@@ -31,39 +33,71 @@ type RemotePlaylist interface {
 	Get() (string, error)
 }
 
-func getPlaylist(client *http.Client, remotePlaylist RemotePlaylist) (m3u8.Playlist, error) {
-	playlistUrl, err := remotePlaylist.Get()
+func (client *Client) getPlaylistUrl(force bool, remotePlaylist RemotePlaylist) (playlistUrl string, err error) {
+	if !force && time.Until(client.playlistUrlDeadline) > 0 {
+		return client.playlistUrl, nil
+	}
+
+	log.Println("Getting playlist url")
+
+	playlistUrl, err = remotePlaylist.Get()
+	if err != nil {
+		log.Println("Failed to get playlist url:", err)
+		return
+	}
+
+	client.playlistUrl = playlistUrl
+	client.playlistUrlDeadline = time.Now().Add(10 * time.Minute)
+
+	return
+}
+
+func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist, error) {
+	playlistUrl, err := client.getPlaylistUrl(false, remotePlaylist)
 	if err != nil {
 		log.Println("Failed to get playlist url")
 		return nil, err
 	}
 
-	request, err := http.NewRequest("GET", playlistUrl, nil)
-	if err != nil {
-		return nil, err
-	}
+	tries := 0
+	var playlist m3u8.Playlist
+	for tries > 0 {
+		playlist, err = func() (playlist m3u8.Playlist, err error) {
 
-	request.Header.Set("User-Agent", os.Getenv("HTTP_USERAGENT"))
+			request, err := http.NewRequest("GET", playlistUrl, nil)
+			if err != nil {
+				return nil, err
+			}
 
-	resp, err := client.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	playlist, _, err := m3u8.DecodeFrom(resp.Body, true)
-	if err != nil {
-		return nil, err
-	}
-	// Done with request body
-	err = resp.Body.Close()
-	if err != nil {
-		log.Fatalln("resp.Body.Close()", err)
+			request.Header.Set("User-Agent", os.Getenv("HTTP_USERAGENT"))
+
+			resp, err := client.client.Do(request)
+			if err != nil {
+				// We weren't able to get this url for whatever reason.
+				// Try and refresh playlist url and try again
+				log.Println("try=", tries, " failed to request playlist:", err)
+				tries += 1
+				return
+			}
+			defer resp.Body.Close()
+
+			playlist, _, err = m3u8.DecodeFrom(resp.Body, true)
+			if err != nil {
+				log.Println("Failed to decode playlist:", err)
+			}
+			return
+		}()
+
+		if err != nil {
+			break
+		}
 	}
 
 	return playlist, nil
 }
 
 func (client *Client) playlistFrame(start time.Time, remotePlaylist RemotePlaylist) (sleepDuration time.Duration, err error) {
-	playlist, err := getPlaylist(client.client, remotePlaylist)
+	playlist, err := client.getPlaylist(remotePlaylist)
 
 	if err != nil {
 		return 0, err
@@ -105,7 +139,7 @@ func (client *Client) playlistFrame(start time.Time, remotePlaylist RemotePlayli
 
 		return time.Duration(int64(playlist.TargetDuration * float64(time.Second))), nil
 	default:
-		log.Fatalln("Unexpected playlist type")
+		log.Println("Unexpected playlist type, cannot download")
 	}
 	return 0, nil
 }
@@ -127,9 +161,9 @@ func (client *Client) Playlist(playlist RemotePlaylist) {
 			return
 		}
 
-		if client.noChange > 10 {
-			log.Println("No change in 10 frames, playlist assumed done")
-			sentry.CaptureMessage("playlist did not change in 10 frame, done")
+		if client.noChange > 40 {
+			log.Println("No change in 40 frames, playlist assumed done")
+			sentry.CaptureMessage("playlist did not change in 40 frame, done")
 			return
 		}
 
@@ -152,6 +186,8 @@ func New() *Client {
 		client,
 		cache,
 		make(chan Segment),
+		"",
+		time.Now().Add(-20 * time.Minute),
 		false,
 		0, 0,
 	}

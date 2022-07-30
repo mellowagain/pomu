@@ -21,20 +21,13 @@ import (
 )
 
 type ytdlRemotePlaylist struct {
-	request       VideoRequest
-	cachedUrl     string
-	cacheDeadline time.Time
+	request VideoRequest
 }
 
 // ErrorLivestreamNotStarted indicates that the livestream has not started
 var ErrorLivestreamNotStarted = errors.New("livestream has not started")
 
 func (p *ytdlRemotePlaylist) Get() (string, error) {
-	cacheRemaining := time.Until(p.cacheDeadline)
-	if cacheRemaining > 0 {
-		return p.cachedUrl, nil
-	}
-
 	log.Println("Getting playlist url for", p.request.VideoUrl)
 
 	span := sentry.StartSpan(
@@ -89,9 +82,6 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 		return "", errors.New("expected m3u8")
 	}
 
-	p.cachedUrl = stringOutput
-	p.cacheDeadline = time.Now().Add(10 * time.Minute)
-
 	return stringOutput, nil
 }
 
@@ -100,7 +90,7 @@ var _ hls.RemotePlaylist = (*ytdlRemotePlaylist)(nil)
 var ffmpegLogs map[string]*strings.Builder = make(map[string]*strings.Builder)
 
 func hasLivestreamStarted(request VideoRequest) (bool, error) {
-	_, err := (&ytdlRemotePlaylist{request, "", time.Time{}}).Get()
+	_, err := (&ytdlRemotePlaylist{request}).Get()
 	if err == ErrorLivestreamNotStarted {
 		return false, nil
 	} else if err != nil {
@@ -140,10 +130,14 @@ func recordFinished(db *sql.DB, id string, size int64) error {
 
 	length := videoLengthFromLog(id)
 
+	log.Println("Finishing video", id, "with size", size, "and length", length)
+
 	_, err = tx.Exec(
 		"update videos set finished = true, file_size = $1, video_length = $2 where id = $3", size, int(length.Seconds()), id)
 
 	if err != nil {
+		log.Println("Failed to update video as finished:", err)
+		sentry.CaptureException(err)
 		return err
 	}
 
@@ -195,7 +189,7 @@ func record(request VideoRequest) (size int64, err error) {
 	go func() {
 		hlsClientPlaylistSpan := span.StartChild("hls-client playlist")
 		defer hlsClientPlaylistSpan.Finish()
-		hlsClient.Playlist(&ytdlRemotePlaylist{request, "", time.Time{}})
+		hlsClient.Playlist(&ytdlRemotePlaylist{request})
 	}()
 
 	// Start the video muxer
@@ -204,7 +198,7 @@ func record(request VideoRequest) (size int64, err error) {
 	muxer.Stderr = ffmpegLogs[id]
 	err = muxer.Start()
 	if err != nil {
-		log.Println("Failed to start ffmpeg:", err)
+		log.Println(id, "Failed to start ffmpeg:", err)
 		hlsClient.Stop()
 		return 0, errors.New("failed to start ffmpeg")
 	}
@@ -229,22 +223,22 @@ func record(request VideoRequest) (size int64, err error) {
 			defer func() { finished <- struct{}{} }()
 			err := s3.Upload(fmt.Sprintf("%s.mp4", id), reader)
 			if err != nil {
-				log.Println("s3.Upload2():", err)
+				log.Println(id, "s3.Upload2():", err)
 				sentry.CaptureException(err)
 				return
 			}
 
-			log.Println("s3 Upload successfully finished")
+			log.Println(id, "s3 Upload successfully finished")
 		}()
 
-		log.Println("Begin copying")
+		log.Println(id, "Begin copying")
 		sentry.CaptureMessage("copy from muxer to s3")
 		size, err := io.Copy(writer, muxer)
 		if err != nil {
 			log.Println("copy muxer to s3:", err)
 			sentry.CaptureException(err)
 		}
-		log.Println("Finished reading from ffmpeg: ", size)
+		log.Println(id, "Finished reading from ffmpeg: ", size)
 		// NOTE(emily): Must close first before writing.
 		// sizeWritten <- size will block until its read
 		// but it wont be read until s3 finishes, which is after the writer
@@ -260,7 +254,7 @@ func record(request VideoRequest) (size int64, err error) {
 	}()
 
 	<-finished
-	log.Println("record finished")
+	log.Println(id, "record finished")
 	go uploadLog(s3, id)
 	return <-sizeWritten, nil
 }
@@ -270,7 +264,7 @@ func uploadLog(s3 *s3.Client, id string) {
 
 	err := s3.Upload(fmt.Sprintf("%s.log", id), strings.NewReader(ffmpegLog))
 	if err != nil {
-		log.Println("uploadLog: s3.Upload2():", err)
+		log.Println(id, "uploadLog: s3.Upload2():", err)
 		sentry.CaptureException(err)
 		return
 	}
@@ -293,7 +287,7 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 
 			err = recordFinished(db, id, size)
 			if err != nil {
-				log.Println("Failed record finish for", id)
+				log.Println("Failed record finish for", id, ":", err)
 			}
 			return
 		} else if err == ErrorLivestreamNotStarted {

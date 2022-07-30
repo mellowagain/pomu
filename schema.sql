@@ -15,7 +15,7 @@ create table videos
     channel_name varchar                  not null,
     channel_id   varchar                  not null,
     thumbnail    varchar                  not null,
-    file_size    integer default 0        not null,
+    file_size    bigint  default 0        not null,
     video_length integer default 0        not null
 );
 

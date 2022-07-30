@@ -16,8 +16,11 @@
     } from "carbon-components-svelte";
     import Countdown from "svelte-countdown/src";
     import dayjs from "dayjs";
+    import duration from "dayjs/plugin/duration";
+    import relativeTime from "dayjs/plugin/relativeTime";
     import {
         CloudDownload,
+        Information,
         Recording,
         Report,
         UserMultiple,
@@ -27,6 +30,12 @@
     import VideoCountdown from "./VideoCountdown.svelte";
 
     export let info: VideoInfo;
+
+    dayjs.extend(duration);
+    dayjs.extend(relativeTime);
+
+    $: humanLength = dayjs.duration(+info.length, "seconds").humanize();
+    $: realLength = dayjs.duration(+info.length, "seconds").format("HH:mm:ss");
 
     let log = (async () => {
         let result = await fetch("/api/logz?id=" + info.id);
@@ -86,7 +95,12 @@
                     <br />
                     <VideoCountdown from={info.scheduledStart} />
                 {:else}
-                    <p>Livestream finished.</p>
+                    <p>
+                        Livestream was {humanLength} long. <TooltipIcon
+                            icon={Information}
+                            tooltipText={realLength}
+                        />
+                    </p>
                 {/if}
 
                 <buttons>
@@ -127,7 +141,11 @@
                                 icon={CloudDownload}
                                 href={info.downloadUrl}
                             >
-                                Download
+                                Download ({"" +
+                                    Math.round(
+                                        +info.fileSizeBytes / (1000 * 1000)
+                                    ) +
+                                    "MB"})
                             </Button>
                         {:catch}
                             <Button icon={CloudDownload} disabled>
