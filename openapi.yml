@@ -63,10 +63,12 @@ components:
           type: string
           description: URL where archive is available for download
         fileSizeBytes:
-          type: number
+          type: integer
+          format: int64
           description: Archive file size in bytes
         length:
-          type: number
+          type: integer
+          format: int32
           description: Length of livestream in seconds
 
 paths:
@@ -124,7 +126,8 @@ paths:
                     - best
                   properties:
                     code:
-                      type: number
+                      type: integer
+                      format: int32
                       description: Numeric ID of the quality
                     resolution:
                       type: string
@@ -151,7 +154,8 @@ paths:
                   type: string
                   description: YouTube url of live stream which should be added to queue
                 quality:
-                  type: number
+                  type: integer
+                  format: int32
                   description: Numeric ID of the quality in which the live stream should be archived
       responses:
         "200":
@@ -182,7 +186,8 @@ paths:
           in: query
           description: Page to display
           schema:
-            type: number
+            type: integer
+            format: int32
             additionalProperties:
               minimum: 0
               default: 0
@@ -190,7 +195,8 @@ paths:
           in: query
           description: Amount of livestreams to display per page
           schema:
-            type: number
+            type: integer
+            format: int32
             additionalProperties:
               maximum: 100
               default: 25
@@ -240,3 +246,34 @@ paths:
             text/plain:
               schema:
                 type: string
+  /stats:
+    get:
+      operationId: GetStats
+      description: Get general stats for this pomu.app instance
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - videoAmount
+                  - totalFileSize
+                  - totalLength
+                  - uniqueChannels
+                  - s3BillPerMonth
+                properties:
+                  videoAmount:
+                    type: integer
+                    description: Amount of videos which are archived or queued to be archived
+                  totalFileSize:
+                    type: integer
+                    description: Total file size of all archives in bytes
+                  totalLength:
+                    type: integer
+                    description: Total amount of seconds of all archives
+                  s3BillPerMonth:
+                    type: number
+                    format: double
+                    description: S3 bill per month in USD
