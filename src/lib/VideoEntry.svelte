@@ -26,6 +26,8 @@
     import type { VideoInfo } from "./video";
     import VideoCountdown from "./VideoCountdown.svelte";
     import { humanizeFileSize } from "./video";
+    import { onDestroy } from "svelte";
+    import VideoLog from "./VideoLog.svelte";
 
     export let info: VideoInfo;
 
@@ -37,34 +39,12 @@
 
     $: humanFileSize = humanizeFileSize(+info.fileSizeBytes);
 
-    let log = async () => {
-        // Try cdn first
-        let result = await fetch(info.downloadUrl.replace("mp4", "log"));
-        if (result.status != 200) {
-            // Might be an in-progress log
-            result = await fetch("/api/logz?id=" + info.id);
-        }
-
-        if (result.status != 200) {
-            throw "log not available for " + info.id;
-        }
-
-        return result
-            .text()
-            .then((text) =>
-                text
-                    .replaceAll("frame=", "\nframe=")
-                    .replaceAll("[mpegts", "\n[mpegts")
-            );
-    };
-
     let downloadAvailable = (async () => {
         let result = await fetch(info.downloadUrl, { method: "HEAD" });
         if (result.status == 404) throw 404;
         return;
     })();
 
-    let logModal = false;
     let submittersModal = false;
 </script>
 
@@ -119,28 +99,7 @@
                         kind="tertiary"
                         on:click={(_) => (submittersModal = true)}
                     />
-                    {#await log}
-                        <Button
-                            icon={Report}
-                            iconDescription="FFMpeg Log"
-                            kind="tertiary"
-                            disabled
-                        />
-                    {:then}
-                        <Button
-                            icon={Report}
-                            iconDescription="FFMpeg Log"
-                            kind="tertiary"
-                            on:click={(_) => (logModal = true)}
-                        />
-                    {:catch}
-                        <Button
-                            icon={Report}
-                            iconDescription="FFMpeg Log"
-                            kind="tertiary"
-                            disabled
-                        />
-                    {/await}
+                    <VideoLog downloadUrl={info.downloadUrl} id={info.id} />
                     {#if info.finished}
                         {#await downloadAvailable}
                             <Button skeleton />
@@ -162,16 +121,6 @@
         </info-container>
     </Row>
 </Tile>
-
-<Modal bind:open={logModal} size="lg" passiveModal modalHeading={"FFMpeg Log"}>
-    {#await log()}
-        <CodeSnippet type="multi" expanded skeleton />
-    {:then log}
-        <CodeSnippet type="multi" expanded>
-            {log}
-        </CodeSnippet>
-    {/await}
-</Modal>
 
 <Modal
     bind:open={submittersModal}
