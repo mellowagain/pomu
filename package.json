@@ -13,6 +13,7 @@
     "@sveltejs/vite-plugin-svelte": "^1.0.0-next.30",
     "@tsconfig/svelte": "^2.0.1",
     "carbon-components-svelte": "^0.66.0",
+    "carbon-icons-svelte": "^11.2.0",
     "svelte": "^3.49.0",
     "svelte-check": "^2.2.7",
     "svelte-preprocess": "^4.9.8",
@@ -21,7 +22,6 @@
     "vite": "^2.9.9"
   },
   "dependencies": {
-    "carbon-icons-svelte": "^11.2.0",
     "dayjs": "^1.11.4",
     "svelte-countdown": "git+https://github.com/emily33901/svelte-countdown.git"
   }
