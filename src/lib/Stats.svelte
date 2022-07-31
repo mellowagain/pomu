@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { DataTable, DataTableSkeleton, InlineNotification, TooltipIcon } from "carbon-components-svelte";
+    import {
+        DataTable,
+        DataTableSkeleton,
+        InlineNotification,
+        TooltipIcon,
+    } from "carbon-components-svelte";
     import { showNotification } from "./notifications";
     import type { Statistic } from "./stats";
     import dayjs from "dayjs";
@@ -20,32 +25,33 @@
                     id: 0,
                     key: "Videos",
                     value: result.videoAmount,
-                    description: "Amount of livestreams stored"
-                } as Statistic,
+                    description: "Amount of livestreams stored",
+                },
                 {
                     id: 1,
                     key: "File Size",
                     value: humanizeFileSize(result.totalFileSize),
-                    description: "Total file size of all stored livestreams"
-                } as Statistic,
+                    description: "Total file size of all stored livestreams",
+                },
                 {
                     id: 2,
                     key: "Length",
                     value: result.totalLength,
-                    description: "Total length of all stored livestreams"
-                } as Statistic,
+                    description: "Total length of all stored livestreams",
+                },
                 {
                     id: 3,
                     key: "Channels",
                     value: result.uniqueChannels,
-                    description: "Unique channels for which livestreams were stored"
-                } as Statistic,
+                    description:
+                        "Unique channels for which livestreams were stored",
+                },
                 {
                     id: 4,
                     key: "S3 Bill",
-                    value: "$" + Number((result.s3BillPerMonth).toFixed(3)),
-                    description: "Storage costs per month"
-                } as Statistic,
+                    value: "$" + Number(result.s3BillPerMonth.toFixed(3)),
+                    description: "Storage costs per month",
+                },
             ];
         } catch (e) {
             console.log(e);
@@ -65,28 +71,34 @@
             headers={[
                 { value: "Statistic" },
                 { value: "Value" },
-                { value: "Description" }
+                { value: "Description" },
             ]}
             rows={4}
         />
     {:then rows}
         <DataTable
             title="Statistics"
-            description="Instance: {window.location === "pomu.app" ? "Production" : window.location.hostname.split(".")[0]}"
+            description="Instance: {window.location === 'pomu.app'
+                ? 'Production'
+                : window.location.hostname.split('.')[0]}"
             headers={[
                 { key: "key", value: "Statistic" },
                 { key: "value", value: "Value" },
-                { key: "description", value: "Description" }
+                { key: "description", value: "Description" },
             ]}
-            rows={rows}
+            {rows}
         >
             <svelte:fragment slot="cell" let:row let:cell>
                 {#if cell.key === "value" && row.id === 2}
                     {dayjs.duration(cell.value, "seconds").humanize()}
 
                     <TooltipIcon
-                            icon={Information}
-                            tooltipText={dayjs.duration(cell.value, "seconds").format("Y [years] M [months] D [days] H [hours] m [minutes] s [seconds]")}
+                        icon={Information}
+                        tooltipText={dayjs
+                            .duration(cell.value, "seconds")
+                            .format(
+                                "Y [years] M [months] D [days] H [hours] m [minutes] s [seconds]"
+                            )}
                     />
                 {:else}
                     {cell.value}
