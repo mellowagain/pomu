@@ -128,7 +128,14 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		thumbnailUrl, _ := saveThumbnail(videoId, videoMetadata.Snippet.Thumbnails.Maxres.Url)
+		thumbnailUrl := ""
+		if videoMetadata.Snippet.Thumbnails != nil {
+			thumbnailUrl, err = saveThumbnail(videoId, videoMetadata.Snippet.Thumbnails.Maxres.Url)
+			if err != nil {
+				http.Error(w, "Failed to save thumbnail for video "+videoId, http.StatusInternalServerError)
+				return
+			}
+		}
 
 		statement, err := tx.Prepare("insert into videos (id, submitters, start, title, channel_name, channel_id, thumbnail) values ($1, $2, $3, $4, $5, $6, $7) returning *")
 

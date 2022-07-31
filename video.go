@@ -199,6 +199,7 @@ func record(request VideoRequest) (size int64, err error) {
 	err = muxer.Start()
 	if err != nil {
 		log.Println(id, "Failed to start ffmpeg:", err)
+		sentry.CaptureException(err)
 		hlsClient.Stop()
 		return 0, errors.New("failed to start ffmpeg")
 	}
@@ -232,7 +233,7 @@ func record(request VideoRequest) (size int64, err error) {
 		}()
 
 		log.Println(id, "Begin copying")
-		sentry.CaptureMessage("copy from muxer to s3")
+		sentry.AddBreadcrumb(&sentry.Breadcrumb{Message: "copy from muxer to s3"})
 		size, err := io.Copy(writer, muxer)
 		if err != nil {
 			log.Println("copy muxer to s3:", err)
