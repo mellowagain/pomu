@@ -37,20 +37,28 @@
 
     $: humanFileSize = humanizeFileSize(+info.fileSizeBytes);
 
-    let log = (async () => {
-        let result = await fetch("/api/logz?id=" + info.id);
+    let log = async () => {
+        // Try cdn first
+        let result = await fetch(info.downloadUrl.replace("mp4", "log"));
         if (result.status != 200) {
-            throw "no log";
+            // Might be an in-progress log
+            result = await fetch("/api/logz?id=" + info.id);
         }
 
-        let text = await result.text();
+        if (result.status != 200) {
+            throw "log not available for " + info.id;
+        }
 
-        return text
-            .replaceAll("frame=", "\nframe=")
-            .replaceAll("[mpegts", "\n[mpegts");
-    })();
+        return result
+            .text()
+            .then((text) =>
+                text
+                    .replaceAll("frame=", "\nframe=")
+                    .replaceAll("[mpegts", "\n[mpegts")
+            );
+    };
 
-    let missing = (async () => {
+    let downloadAvailable = (async () => {
         let result = await fetch(info.downloadUrl, { method: "HEAD" });
         if (result.status == 404) throw 404;
         return;
@@ -134,7 +142,7 @@
                         />
                     {/await}
                     {#if info.finished}
-                        {#await missing}
+                        {#await downloadAvailable}
                             <Button skeleton />
                         {:then}
                             <Button
@@ -156,7 +164,9 @@
 </Tile>
 
 <Modal bind:open={logModal} size="lg" passiveModal modalHeading={"FFMpeg Log"}>
-    {#await log then log}
+    {#await log()}
+        <CodeSnippet type="multi" expanded skeleton />
+    {:then log}
         <CodeSnippet type="multi" expanded>
             {log}
         </CodeSnippet>
