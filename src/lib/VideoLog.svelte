@@ -13,12 +13,10 @@
 
     let logOpened: () => void;
     let logCancelled: () => void;
-    let waitForLogOpened = (() => {
-        return new Promise<void>((resolve, reject) => {
-            logOpened = resolve;
-            logCancelled = reject;
-        });
-    })();
+    let waitForLogOpened = new Promise<void>((resolve, reject) => {
+        logOpened = resolve;
+        logCancelled = reject;
+    });
 
     let getLog = async (method: string) => {
         // Try cdn first
