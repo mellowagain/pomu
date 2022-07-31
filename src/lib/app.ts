@@ -6,4 +6,18 @@ export enum Page {
     History,
 }
 
-export let currentPage = writable(Page.Video)
+let currentOpenedPage;
+
+switch (window.location.pathname) {
+    case "/queue":
+        currentOpenedPage = Page.Queue;
+        break;
+    case "/history":
+        currentOpenedPage = Page.History;
+        break;
+    default:
+        currentOpenedPage = Page.Video;
+        break;
+}
+
+export let currentPage = writable(currentOpenedPage)

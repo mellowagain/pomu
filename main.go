@@ -65,10 +65,13 @@ func setupServer(address string, app *Application) {
 	r := mux.NewRouter()
 
 	// == FRONTEND ==
-
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	serveIndex := func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./dist/index.html")
-	}).Methods("GET")
+	}
+
+	r.HandleFunc("/", serveIndex).Methods("GET")
+	r.HandleFunc("/queue", serveIndex).Methods("GET")
+	r.HandleFunc("/history", serveIndex).Methods("GET")
 
 	// Static resources
 	fileServer := http.FileServer(http.Dir("./dist/assets"))

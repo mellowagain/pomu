@@ -12,7 +12,27 @@
     import { user } from "./api";
     import NavAvatar from "./NavAvatar.svelte";
 
-    let isOpen = false;
+    currentPage.subscribe(value => {
+        switch (value) {
+            case Page.Video:
+                history.pushState({currentPage: value}, "", `${window.location.origin}`);
+                break;
+            case Page.Queue:
+                history.pushState({currentPage: value}, "", `${window.location.origin}/queue`);
+                break;
+            case Page.History:
+                history.pushState({currentPage: value}, "", `${window.location.origin}/history`);
+                break;
+            default:
+                // TODO: Display 404
+                break;
+        }
+    });
+
+    window.onpopstate = function(event) {
+        currentPage.set(event.state.currentPage);
+        console.log(`location: ${document.location}, state: ${JSON.stringify(event.state)}`);
+    }
 </script>
 
 <div>
