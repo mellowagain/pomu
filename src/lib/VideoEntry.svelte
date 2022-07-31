@@ -37,6 +37,19 @@
     $: humanLength = dayjs.duration(+info.length, "seconds").humanize();
     $: realLength = dayjs.duration(+info.length, "seconds").format("HH:mm:ss");
 
+    function humanizeFileSize(sizeBytes: number) {
+        let mbSize = sizeBytes / (1000 * 1000);
+        let gbSize = mbSize / 1000;
+
+        if (gbSize < 1) {
+            return Math.round(mbSize) + "MB";
+        }
+
+        return gbSize.toFixed(1) + "GB";
+    }
+
+    $: humanFileSize = humanizeFileSize(+info.fileSizeBytes);
+
     let log = (async () => {
         let result = await fetch("/api/logz?id=" + info.id);
         if (result.status != 200) {
@@ -141,11 +154,7 @@
                                 icon={CloudDownload}
                                 href={info.downloadUrl}
                             >
-                                Download ({"" +
-                                    Math.round(
-                                        +info.fileSizeBytes / (1000 * 1000)
-                                    ) +
-                                    "MB"})
+                                Download ({humanFileSize})
                             </Button>
                         {:catch}
                             <Button icon={CloudDownload} disabled>

@@ -7,12 +7,28 @@
         notifications,
         clearNotification,
         StoredNotification,
+        showNotification,
     } from "./notifications";
 
     let params = new URL(document.location).searchParams;
 
-    let displayRegister = params.has("successRegister");
-    let displayLogin = params.has("success");
+    if (params.has("success")) {
+        showNotification({
+            title: "Successfully Logged in",
+            kind: "success",
+            timeout: 5000,
+            description: "",
+        });
+    }
+
+    if (params.has("successRegister")) {
+        showNotification({
+            title: "Successfully Registered",
+            kind: "success",
+            timeout: 5000,
+            description: "",
+        });
+    }
 
     let notifs: [number, StoredNotification][];
     notifications.subscribe((n) => {
@@ -21,14 +37,6 @@
 </script>
 
 <notifs>
-    {#if displayRegister}
-        <Notification title="Successfully registered" kind="success" />
-    {/if}
-
-    {#if displayLogin}
-        <Notification title="Successfully logged in" kind="success" />
-    {/if}
-
     {#each notifs as [id, notification] (id)}
         <div transition:fade>
             <Notification

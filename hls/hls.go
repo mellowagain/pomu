@@ -61,9 +61,8 @@ func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist,
 
 	tries := 0
 	var playlist m3u8.Playlist
-	for tries > 0 {
+	for tries >= 0 {
 		playlist, err = func() (playlist m3u8.Playlist, err error) {
-
 			request, err := http.NewRequest("GET", playlistUrl, nil)
 			if err != nil {
 				return nil, err
@@ -88,8 +87,20 @@ func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist,
 			return
 		}()
 
-		if err != nil {
+		if err == nil {
 			break
+		}
+
+		if tries > 20 {
+			log.Println("Giving up retrying playlist", err)
+			break
+		}
+
+		// We failed, re-get playlist url and then try again
+		playlistUrl, err = client.getPlaylistUrl(true, remotePlaylist)
+		if err != nil {
+			log.Println("Failed to get playlist url")
+			return nil, err
 		}
 	}
 
@@ -97,13 +108,13 @@ func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist,
 }
 
 func (client *Client) playlistFrame(start time.Time, remotePlaylist RemotePlaylist) (sleepDuration time.Duration, err error) {
-	playlist, err := client.getPlaylist(remotePlaylist)
+	playlistVariant, err := client.getPlaylist(remotePlaylist)
 
 	if err != nil {
 		return 0, err
 	}
 
-	switch playlist := playlist.(type) {
+	switch playlist := playlistVariant.(type) {
 	case *m3u8.MediaPlaylist:
 		if playlist.SeqNo == uint64(client.lastSeq) {
 			log.Println("Seq did not change", client.noChange)
@@ -139,7 +150,7 @@ func (client *Client) playlistFrame(start time.Time, remotePlaylist RemotePlayli
 
 		return time.Duration(int64(playlist.TargetDuration * float64(time.Second))), nil
 	default:
-		log.Println("Unexpected playlist type, cannot download")
+		log.Println("Unexpected playlist type ", playlistVariant, ", cannot download")
 	}
 	return 0, nil
 }
