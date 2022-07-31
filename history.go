@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,7 +39,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		whereClause = "where finished = true"
 	}
 
-	rows, err := tx.Query(fmt.Sprintf("select * from videos %s order by start %s limit %d offset %d", whereClause, sort, limit, page*limit))
+	rows, err := tx.Query(fmt.Sprintf("select * from videos %s order by start %s limit %d offset %d", whereClause, sort, limit+1, page*limit))
 
 	if err != nil {
 		sentry.CaptureException(err)
@@ -54,6 +55,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 	}(rows)
 
 	videos := []Video{}
+	hasMore := false
 
 	for rows.Next() {
 		var video Video
@@ -70,6 +72,20 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		videos = append(videos, video)
 	}
 
+	if len(videos) == (limit + 1) {
+		hasMore = true
+		videos = videos[:len(videos)-1]
+	}
+
+	videoCount := 0
+
+	if err := tx.QueryRow(fmt.Sprintf("select count(*) from videos %s", whereClause)).Scan(&videoCount); err != nil {
+		log.Printf("%s\n", err)
+		sentry.CaptureException(err)
+		http.Error(w, "failed to query total video count", http.StatusInternalServerError)
+		return
+	}
+
 	if err := tx.Commit(); err != nil {
 		sentry.CaptureException(err)
 		http.Error(w, "cannot commit transaction", http.StatusInternalServerError)
@@ -78,6 +94,14 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+
+	w.Header().Set("X-Pomu-Pagination-Total", strconv.Itoa(videoCount))
+
+	if hasMore {
+		w.Header().Set("X-Pomu-Pagination-Has-More", "true")
+	} else {
+		w.Header().Set("X-Pomu-Pagination-Has-More", "false")
+	}
 
 	if err := json.NewEncoder(w).Encode(videos); err != nil {
 		sentry.CaptureException(err)
