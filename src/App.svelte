@@ -3,25 +3,15 @@
     import VideoInput from "./lib/VideoInput.svelte";
     import Logo from "./lib/Logo.svelte";
     import Heading from "./lib/Heading.svelte";
-    import ArchiveButtons from "./lib/ArchiveButtons.svelte";
     import Notifications from "./lib/Notifications.svelte";
     import Nav from "./lib/Nav.svelte";
-    import {
-        Column,
-        Content,
-        Grid,
-        Popover,
-        Row,
-    } from "carbon-components-svelte";
+    import { Column, Content, Grid, Row } from "carbon-components-svelte";
     import { fade } from "svelte/transition";
     import VideoEmbed from "./lib/VideoEmbed.svelte";
     import Queue from "./lib/Queue.svelte";
     import History from "./lib/History.svelte";
     import { currentPage, Page } from "./lib/app";
     import Stats from "./lib/Stats.svelte";
-
-    let page = Page.Video;
-    currentPage.subscribe((newPage) => (page = newPage));
 </script>
 
 <Notifications />
@@ -30,7 +20,7 @@
     <div style="padding: 20px" />
     <Grid>
         <div transition:fade>
-            {#if page == Page.Video}
+            {#if $currentPage == Page.Video}
                 <Row>
                     <Column>
                         <Heading />
@@ -42,9 +32,9 @@
                         <VideoInput />
                     </Column>
                 </Row>
-            {:else if page == Page.Queue}
+            {:else if $currentPage == Page.Queue}
                 <Queue />
-            {:else if page == Page.History}
+            {:else if $currentPage == Page.History}
                 <History />
             {/if}
         </div>
