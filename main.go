@@ -62,7 +62,7 @@ func setupServer(address string, app *Application) {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	})
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 
 	// == FRONTEND ==
 	serveIndex := func(w http.ResponseWriter, r *http.Request) {
