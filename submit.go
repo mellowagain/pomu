@@ -15,6 +15,7 @@ import (
 	"github.com/lib/pq"
 	"golang.org/x/exp/slices"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/youtube/v3"
 )
 
 type Video struct {
@@ -70,7 +71,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	videoId := ParseVideoID(request.VideoUrl)
-	videoMetadata, err := GetVideoMetadata(videoId, token)
+	videoMetadata, err := GetVideoMetadataWithToken(videoId, token)
 
 	if err != nil {
 		http.Error(w, "failed to get video metadata", http.StatusBadRequest)
@@ -89,13 +90,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var startTime time.Time
-
-	if IsLivestreamStarted(videoMetadata) {
-		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ActualStartTime)
-	} else {
-		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ScheduledStartTime)
-	}
+	startTime, err := GetVideoStartTime(videoMetadata)
 
 	if err != nil {
 		sentry.CaptureException(err)
@@ -201,22 +196,10 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	log.Printf("New video submitted: %s (quality %d)\n", request.VideoUrl, request.Quality)
 
 	if reschedule {
-		if IsLivestreamStarted(videoMetadata) {
-			if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, app.db, request); err != nil {
-				sentry.CaptureException(err)
-				http.Error(w, "failed to schedule and start recording job", http.StatusInternalServerError)
-				return
-			}
-
-			log.Printf("Livestream already started, starting recording immediatly")
-		} else {
-			if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, app.db, request); err != nil {
-				sentry.CaptureException(err)
-				http.Error(w, "failed to schedule recording job", http.StatusInternalServerError)
-				return
-			}
-
-			log.Printf("Livestream recording scheduled for %s", startTime.Format(time.RFC3339))
+		err := app.scheduleVideo(videoMetadata, videoId, request)
+		if err != nil {
+			http.Error(w, "Failed to schedule video recording", http.StatusInternalServerError)
+			return
 		}
 	}
 
@@ -233,6 +216,43 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		sentry.CaptureException(err)
 		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
 	}
+}
+
+func GetVideoStartTime(videoMetadata *youtube.Video) (startTime time.Time, err error) {
+	if IsLivestreamStarted(videoMetadata) {
+		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ActualStartTime)
+	} else {
+		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ScheduledStartTime)
+	}
+	return startTime, err
+}
+
+func (app *Application) scheduleVideo(
+	videoMetadata *youtube.Video,
+	videoId string,
+	request VideoRequest) error {
+
+	if IsLivestreamStarted(videoMetadata) {
+		if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, app.db, request); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		log.Printf("Livestream already started, starting recording immediatly")
+	} else {
+		startTime, err := GetVideoStartTime(videoMetadata)
+		if err != nil {
+			return err
+		}
+		if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, app.db, request); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		log.Printf("Livestream recording scheduled for %s", startTime.Format(time.RFC3339))
+	}
+
+	return nil
 }
 
 func PeekForQualities(w http.ResponseWriter, r *http.Request) {

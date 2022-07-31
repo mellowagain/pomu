@@ -45,10 +45,14 @@ func main() {
 		address = ":8080"
 	}
 
-	setupServer(address, &Application{
+	app := &Application{
 		db:           Connect(),
 		secureCookie: setupSecureCookie(),
-	})
+	}
+
+	go app.restartRecording()
+
+	setupServer(address, app)
 }
 
 func setupServer(address string, app *Application) {
@@ -202,5 +206,32 @@ func apiOverview(w http.ResponseWriter, _ *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "failed to serialize", http.StatusInternalServerError)
+	}
+}
+
+func (app *Application) restartRecording() {
+	queue, err := app.getQueue()
+
+	if err != nil {
+		log.Println("Failed to get queue")
+		sentry.CaptureException(err)
+		return
+	}
+
+	log.Println("Found", len(queue), "videos to restart")
+
+	for _, video := range queue {
+		videoMetadata, err := GetVideoMetadata(video.Id)
+		if err != nil {
+			sentry.CaptureException(err)
+			log.Println("restart:", video.Id, "Unable to get video metadata")
+			continue
+		}
+
+		app.scheduleVideo(videoMetadata, video.Id, VideoRequest{
+			VideoUrl: fmt.Sprintf("https://youtu.be/%s", video.Id),
+			// Use 0 to auto-pick best quality
+			Quality: 0,
+		})
 	}
 }

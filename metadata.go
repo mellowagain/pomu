@@ -3,14 +3,39 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 )
 
-func GetVideoMetadata(videoId string, token *oauth2.Token) (*youtube.Video, error) {
+func GetVideoMetadataWithToken(videoId string, token *oauth2.Token) (*youtube.Video, error) {
 	service, err := youtube.NewService(context.Background(), option.WithTokenSource(oauth2.StaticTokenSource(token)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	videoService := youtube.NewVideosService(service)
+
+	list, err := videoService.List([]string{"contentDetails", "liveStreamingDetails", "snippet"}).Id(videoId).Do()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if length := len(list.Items); length != 1 {
+		return nil, fmt.Errorf("didn't get items, length was %d", length)
+	}
+
+	return list.Items[0], nil
+}
+
+func GetVideoMetadata(videoId string) (*youtube.Video, error) {
+	service, err := youtube.NewService(
+		context.Background(),
+		option.WithAPIKey(os.Getenv("GOOGLE_API_KEY")))
 
 	if err != nil {
 		return nil, err
