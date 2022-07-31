@@ -1,0 +1,73 @@
+openapi: 3.0.3
+
+info:
+  title: pomu.app CDN API
+  version: 0.0.1
+  description: Public CDN API for pomu.app
+  contact:
+    name: General inqueries regarding API
+    email: mari@pomu.app
+    url: https://pomu.app
+  license:
+    name: BSD 3-Clause
+    url: https://github.com/mellowagain/pomu/blob/main/LICENSE.txt
+
+servers:
+  - url: https://cdn.pomu.app/file/pomu
+    description: Production CDN
+  - url: https://dev-cdn.pomu.app/file/pomu-dev
+    description: Development CDN
+
+components:
+  parameters:
+    videoID:
+      name: videoID
+      in: path
+      description: YouTube Video ID
+      required: true
+      schema:
+        type: string
+
+paths:
+  /{videoID}.jpg:
+    get:
+      operationId: thumbnail
+      description: Returns maximum resolution thumbnail for archive
+      parameters:
+        - $ref: "#/components/parameters/videoID"
+      responses:
+        "200":
+          description: OK
+          content:
+            binary/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /{videoID}.log:
+    get:
+      operationId: log
+      description: Returns ffmpeg log for archive
+      parameters:
+        - $ref: "#/components/parameters/videoID"
+      responses:
+        "200":
+          description: OK
+          content:
+            binary/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /{videoID}.mp4:
+    get:
+      operationId: video
+      description: Returns video file for archive
+      parameters:
+        - $ref: "#/components/parameters/videoID"
+      responses:
+        "200":
+          description: OK
+          content:
+            binary/octet-stream:
+              schema:
+                type: string
+                format: binary
