@@ -194,6 +194,14 @@ paths:
             additionalProperties:
               maximum: 100
               default: 25
+        - name: sort
+          in: query
+          description: Sort direction of results
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
         - name: unfinished
           in: query
           description: Whenever unfinished livestreams (live or upcoming) should be displayed

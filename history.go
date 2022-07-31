@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -15,7 +16,7 @@ import (
 )
 
 func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
-	page, limit, err := parsePageAndLimit(r.URL.Query())
+	page, limit, sort, err := parseFilterArgs(r.URL.Query())
 	showUnfinished := strings.ToLower(r.URL.Query().Get("unfinished")) == "true"
 
 	if err != nil {
@@ -37,7 +38,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		whereClause = "where finished = true"
 	}
 
-	rows, err := tx.Query(fmt.Sprintf("select * from videos %s order by start limit %d offset %d", whereClause, limit, page*limit))
+	rows, err := tx.Query(fmt.Sprintf("select * from videos %s order by start %s limit %d offset %d", whereClause, sort, limit, page*limit))
 
 	if err != nil {
 		sentry.CaptureException(err)
@@ -84,8 +85,8 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// parsePageAndLimit returns the page and limit. If not set, will return default values
-func parsePageAndLimit(values url.Values) (int, int, error) {
+// parseFilterArgs returns the page, limit and sort. If not set, will return default values
+func parseFilterArgs(values url.Values) (int, int, string, error) {
 	pageStr := values.Get("page")
 	var page int
 
@@ -93,7 +94,7 @@ func parsePageAndLimit(values url.Values) (int, int, error) {
 		convertedPage, err := strconv.Atoi(pageStr)
 
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, "asc", err
 		}
 
 		page = convertedPage
@@ -108,7 +109,7 @@ func parsePageAndLimit(values url.Values) (int, int, error) {
 		convertedLimit, err := strconv.Atoi(limitStr)
 
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, "asc", err
 		}
 
 		limit = min(convertedLimit, 100)
@@ -116,7 +117,21 @@ func parsePageAndLimit(values url.Values) (int, int, error) {
 		limit = 25
 	}
 
-	return page, limit, nil
+	sortStr := values.Get("sort")
+	sort := "asc"
+
+	if len(sortStr) > 0 {
+		switch strings.ToLower(sortStr) {
+		case "asc":
+			sort = "asc"
+		case "desc":
+			sort = "desc"
+		default:
+			return 0, 0, "asc", errors.New("only asc and desc allowed for sort")
+		}
+	}
+
+	return page, limit, sort, nil
 }
 
 func min(a, b int) int {
