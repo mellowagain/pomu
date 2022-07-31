@@ -14,20 +14,18 @@
         Tooltip,
         TooltipIcon,
     } from "carbon-components-svelte";
-    import Countdown from "svelte-countdown/src";
     import dayjs from "dayjs";
     import duration from "dayjs/plugin/duration";
     import relativeTime from "dayjs/plugin/relativeTime";
     import {
         CloudDownload,
         Information,
-        Recording,
         Report,
         UserMultiple,
-        Warning,
     } from "carbon-icons-svelte";
     import type { VideoInfo } from "./video";
     import VideoCountdown from "./VideoCountdown.svelte";
+    import { humanizeFileSize } from "./video";
 
     export let info: VideoInfo;
 
@@ -36,17 +34,6 @@
 
     $: humanLength = dayjs.duration(+info.length, "seconds").humanize();
     $: realLength = dayjs.duration(+info.length, "seconds").format("HH:mm:ss");
-
-    function humanizeFileSize(sizeBytes: number) {
-        let mbSize = sizeBytes / (1000 * 1000);
-        let gbSize = mbSize / 1000;
-
-        if (gbSize < 1) {
-            return Math.round(mbSize) + "MB";
-        }
-
-        return gbSize.toFixed(1) + "GB";
-    }
 
     $: humanFileSize = humanizeFileSize(+info.fileSizeBytes);
 

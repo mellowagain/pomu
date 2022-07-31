@@ -18,6 +18,7 @@
     import Queue from "./lib/Queue.svelte";
     import History from "./lib/History.svelte";
     import { currentPage, Page } from "./lib/app";
+    import Stats from "./lib/Stats.svelte";
 
     let page = Page.Video;
     currentPage.subscribe((newPage) => (page = newPage));
@@ -34,6 +35,7 @@
                     <Column>
                         <Heading />
                         <Logo />
+                        <Stats />
                     </Column>
                     <Column>
                         <VideoEmbed />

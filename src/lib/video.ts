@@ -21,3 +21,14 @@ export interface VideoInfo {
     fileSizeBytes: string,
     length: string,
 }
+
+export function humanizeFileSize(sizeBytes: number) {
+    let mbSize = sizeBytes / (1000 * 1000);
+    let gbSize = mbSize / 1000;
+
+    if (gbSize < 1) {
+        return Math.round(mbSize) + " MB";
+    }
+
+    return gbSize.toFixed(1) + " GB";
+}
