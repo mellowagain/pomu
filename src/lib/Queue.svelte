@@ -4,11 +4,13 @@
 
     import { readable } from "svelte/store";
     import { showNotification } from "./notifications";
+    import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
     import type { VideoInfo } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
 
     onDestroy(() => {
         clearTimeout(timeout);
+        loading = true;
     });
 
     let timeout: NodeJS.Timeout;
@@ -23,6 +25,7 @@
                 }
 
                 set(map);
+                loading = false;
             } catch (e) {
                 showNotification({
                     title: "Failed to get queue",
@@ -44,7 +47,6 @@
     });
 
     let loading = true;
-    queue.subscribe((_) => (loading = false));
 </script>
 
 <Row>
@@ -55,25 +57,28 @@
             ({$queue.size})
         {/if}
     </h1>
-
-    {#if loading}
-        <Loading />
-    {/if}
 </Row>
 
-{#each [...$queue.entries()] as [id, info] (id)}
-    <VideoEntry {info} />
-{/each}
+{#if loading}
+    <SkeletonVideoEntry />
+    <SkeletonVideoEntry />
+    <SkeletonVideoEntry />
+    <SkeletonVideoEntry />
+{:else}
+    {#each [...$queue.entries()] as [id, info] (id)}
+        <VideoEntry {info} />
+    {/each}
 
-{#if $queue.size === 0 && !loading}
-    <InlineNotification
-        lowContrast
-        kind="info"
-        subtitle="There are currently no streams in the queue"
-        on:close={(e) => {
-            e.preventDefault();
-        }}
-    />
+    {#if $queue.size === 0 && !loading}
+        <InlineNotification
+            lowContrast
+            kind="info"
+            subtitle="There are currently no streams in the queue"
+            on:close={(e) => {
+                e.preventDefault();
+            }}
+        />
+    {/if}
 {/if}
 
 <style>

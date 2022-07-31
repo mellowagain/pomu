@@ -1,17 +1,14 @@
 <script lang="ts">
     import {
         Button,
-        CodeSnippet,
         Column,
         ImageLoader,
         Link,
         Modal,
         OutboundLink,
-        Popover,
         Row,
-        Tag,
+        SkeletonPlaceholder,
         Tile,
-        Tooltip,
         TooltipIcon,
     } from "carbon-components-svelte";
     import dayjs from "dayjs";
@@ -20,13 +17,11 @@
     import {
         CloudDownload,
         Information,
-        Report,
         UserMultiple,
     } from "carbon-icons-svelte";
     import type { VideoInfo } from "./video";
     import VideoCountdown from "./VideoCountdown.svelte";
     import { humanizeFileSize } from "./video";
-    import { onDestroy } from "svelte";
     import VideoLog from "./VideoLog.svelte";
 
     export let info: VideoInfo;
