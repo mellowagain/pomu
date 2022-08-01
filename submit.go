@@ -227,13 +227,9 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Expires", strings.ReplaceAll(startTime.UTC().Format(time.RFC1123), "UTC", "GMT"))
 
-	if err := json.NewEncoder(w).Encode(video); err != nil {
-		sentry.CaptureException(err)
-		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
-	}
+	SerializeJson(w, video)
 }
 
 func GetVideoStartTime(videoMetadata *youtube.Video) (startTime time.Time, err error) {
@@ -289,7 +285,6 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "max-age=14400")
 
 	if cached {
@@ -298,10 +293,7 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Pomu-Cache", "miss")
 	}
 
-	if err := json.NewEncoder(w).Encode(qualities); err != nil {
-		sentry.CaptureException(err)
-		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
-	}
+	SerializeJson(w, qualities)
 }
 
 // Saves a thumbnail to S3

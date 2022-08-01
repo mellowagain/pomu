@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -92,7 +91,6 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 
 	w.Header().Set("X-Pomu-Pagination-Total", strconv.Itoa(videoCount))
@@ -103,10 +101,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Pomu-Pagination-Has-More", "false")
 	}
 
-	if err := json.NewEncoder(w).Encode(videos); err != nil {
-		sentry.CaptureException(err)
-		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
-	}
+	SerializeJson(w, videos)
 }
 
 // parseFilterArgs returns the page, limit and sort. If not set, will return default values

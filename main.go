@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -207,9 +206,7 @@ func apiOverview(w http.ResponseWriter, _ *http.Request) {
 		"commit":        GitHash,
 	}
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "failed to serialize", http.StatusInternalServerError)
-	}
+	SerializeJson(w, response)
 }
 
 func (app *Application) restartRecording() {

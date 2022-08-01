@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/getsentry/sentry-go"
 	"net/http"
 	"os"
@@ -60,12 +59,7 @@ func (app *Application) GetStats(w http.ResponseWriter, r *http.Request) {
 		S3BillPerMonth: s3Bill,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(stats); err != nil {
-		w.Header().Set("Content-Type", "text/plain")
-		http.Error(w, "failed to serialize", http.StatusInternalServerError)
-	}
+	SerializeJson(w, stats)
 }
 
 type Stats struct {

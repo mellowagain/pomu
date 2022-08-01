@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -73,11 +72,7 @@ func (app *Application) GetQueue(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 
-	if err := json.NewEncoder(w).Encode(videos); err != nil {
-		sentry.CaptureException(err)
-		http.Error(w, "cannot serialize to json", http.StatusInternalServerError)
-	}
+	SerializeJson(w, videos)
 }
