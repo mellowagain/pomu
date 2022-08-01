@@ -224,6 +224,17 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/video"
+          headers:
+            X-Pomu-Pagination-Total:
+              description: Total amounts of rows that match the filter
+              required: true
+              schema:
+                type: integer
+            X-Pomu-Pagination-Has-More:
+              description: Whenever there are more pages available
+              required: true
+              schema:
+                type: boolean
   /logz:
     get:
       operationId: Log
