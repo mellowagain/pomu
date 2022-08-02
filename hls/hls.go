@@ -174,7 +174,6 @@ func (client *Client) Playlist(playlist RemotePlaylist) {
 
 		if client.noChange > 40 {
 			log.Println("No change in 40 frames, playlist assumed done")
-			sentry.CaptureMessage("playlist did not change in 40 frame, done")
 			return
 		}
 
