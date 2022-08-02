@@ -51,9 +51,10 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 				Best:       false,
 			}}, false, nil
 		} else {
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{Level: sentry.LevelDebug, Message: fmt.Sprintf("ffmpeg output was %s", output)})
 			sentry.CaptureException(err)
 
-			log.Printf("failed to run youtube-dl: %s\n", err)
+			log.Printf("failed to run youtube-dl: %s (output was %s)\n", err, output)
 			return nil, false, err
 		}
 	}

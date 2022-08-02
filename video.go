@@ -69,6 +69,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 	}
 
 	if err != nil {
+		sentry.AddBreadcrumb(&sentry.Breadcrumb{Level: sentry.LevelDebug, Message: fmt.Sprintf("ffmpeg output was %s", output)})
 		sentry.CaptureException(err)
 		log.Printf("cannot run youtube-dl: %s (output was %s)\n", err, output)
 		return "", err
