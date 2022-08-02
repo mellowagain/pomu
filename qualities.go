@@ -44,7 +44,8 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
-		if strings.Contains(output.String(), "ERROR: This live event will begin in") {
+		if strings.Contains(output.String(), "ERROR: This live event will begin in") ||
+			strings.Contains(output.String(), "ERROR: Premieres in") {
 			return []VideoQuality{{
 				Code:       -1,
 				Resolution: "Not yet started, will use best quality",
