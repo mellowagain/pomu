@@ -195,7 +195,8 @@ func New() *Client {
 	return &Client{
 		client,
 		cache,
-		make(chan Segment),
+		// Allow for a slight buffer of segments
+		make(chan Segment, 10),
 		"",
 		time.Now().Add(-20 * time.Minute),
 		false,

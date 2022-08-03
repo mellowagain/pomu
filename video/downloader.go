@@ -1,6 +1,7 @@
 package video
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -26,16 +27,29 @@ func Download(segments chan hls.Segment, w io.WriteCloser) {
 		req.Header.Set("User-Agent", os.Getenv("HTTP_USERAGENT"))
 
 		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode != 200 {
-			log.Println("client.Get():", resp.StatusCode, err)
-			// If we didn't get a 200 then we are probably done
+		if err != nil {
+			log.Println("video.Download(): client.Get():", err)
+			sentry.CaptureException(err)
 			break
 		}
 
-		func(body io.ReadCloser) {
-			defer body.Close()
+		func(resp *http.Response) {
+			defer resp.Body.Close()
 
-			n, err := io.Copy(w, body)
+			if resp.StatusCode != 200 {
+				sentry.AddBreadcrumb(&sentry.Breadcrumb{
+					Data: map[string]interface{}{
+						"status":           resp.Status,
+						"response headers": resp.Header,
+					},
+					Level: sentry.LevelInfo,
+				})
+				sentry.CaptureMessage(fmt.Sprint("video.Download(): client.Get():", resp.StatusCode))
+				log.Println("video.Download(): client.Get():", resp.StatusCode)
+				return
+			}
+
+			n, err := io.Copy(w, resp.Body)
 			if err != nil {
 				log.Println("video.Download(): io.Copy():", err)
 				sentry.CaptureException(err)
@@ -43,7 +57,7 @@ func Download(segments chan hls.Segment, w io.WriteCloser) {
 			if resp.ContentLength > n {
 				log.Println("video.Download(): io.Copy did not copy enough", n, "copied vs", resp.ContentLength)
 			}
-		}(resp.Body)
+		}(resp)
 	}
 	log.Println("video.Download(): done")
 }

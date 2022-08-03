@@ -9,6 +9,6 @@
 
 <style>
     div {
-        max-width: 50%;
+        width: 40%;
     }
 </style>
