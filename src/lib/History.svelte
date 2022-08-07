@@ -13,6 +13,7 @@
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
     import type { HistoryResponse } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
+    import { onDestroy, onMount } from "svelte";
 
     // Search parameters
     let sorting = "desc";
@@ -21,6 +22,7 @@
     let limit = 25;
 
     let history = requestHistory();
+    let intervalId;
 
     function refreshData() {
         history = requestHistory();
@@ -35,7 +37,28 @@
             videos: new Map(json.map(entry => [entry.id, entry]))
         };
     }
+
+    function scheduleRefresh() {
+        intervalId = setInterval(refreshData, 30000);
+    }
+
+    function handleVisibilityChange() {
+        switch (document.visibilityState) {
+            case "visible":
+                refreshData();
+                scheduleRefresh();
+                break;
+            case "hidden":
+                clearInterval(intervalId);
+                break;
+        }
+    }
+
+    onMount(() => scheduleRefresh());
+    onDestroy(() => clearInterval(intervalId));
 </script>
+
+<svelte:window on:visibilitychange={handleVisibilityChange}/>
 
 <Grid>
     <Row>
