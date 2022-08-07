@@ -1,5 +1,4 @@
-import { readable, writable } from "svelte/store";
-import { showNotification } from "./notifications";
+import { writable } from "svelte/store";
 
 export interface VideoInputInfo {
     title: string,
@@ -32,4 +31,9 @@ export function humanizeFileSize(sizeBytes: number) {
     }
 
     return gbSize.toFixed(1) + " GB";
+}
+
+export interface HistoryResponse {
+    videos: Map<string, VideoInfo>,
+    totalItems: number
 }

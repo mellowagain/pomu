@@ -1,74 +1,92 @@
 <script lang="ts">
-    import { InlineNotification, Loading, Row } from "carbon-components-svelte";
-    import { onDestroy } from "svelte";
-
-    import { readable } from "svelte/store";
-    import { showNotification } from "./notifications";
+    import {
+        Column,
+        Dropdown,
+        Grid,
+        InlineNotification,
+        NotificationActionButton,
+        Pagination,
+        PaginationSkeleton,
+        Row,
+        Toggle
+    } from "carbon-components-svelte";
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
-    import type { VideoInfo } from "./video";
+    import type { HistoryResponse } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
 
-    onDestroy(() => {
-        clearTimeout(timeout);
-        loading = true;
-    });
+    // Search parameters
+    let sorting = "desc";
+    let displayUnfinished = false;
+    let page = 1;
+    let limit = 25;
 
-    let timeout: NodeJS.Timeout;
-    let history = readable<Map<string, VideoInfo>>(new Map(), (set) => {
-        const f = async () => {
-            try {
-                let results = await fetch("/api/history").then((r) => r.json());
-                // transform from array which contains id into id -> array map
-                let map = new Map();
-                for (let r of results) {
-                    map.set(r.id, r);
-                }
+    let history = requestHistory();
 
-                set(map);
-                loading = false;
-            } catch (e) {
-                showNotification({
-                    title: "Failed to get history",
-                    description: e.text,
-                    kind: "error",
-                    timeout: 5000,
-                });
-            }
-            if (document.hidden) {
-                console.debug("Page is hidden, next update in 30 seconds");
-                timeout = setTimeout(f, 30000);
-            } else {
-                console.debug("Page is visible, next update in 10 seconds");
-                timeout = setTimeout(f, 10000);
-            }
+    function refreshData() {
+        history = requestHistory();
+    }
+
+    async function requestHistory(): Promise<HistoryResponse> {
+        let totalItems;
+
+        let results = await fetch(`/api/history?page=${page - 1}&limit=${limit}&sort=${sorting}&unfinished=${displayUnfinished}`);
+
+        totalItems = +results.headers.get("X-Pomu-Pagination-Total");
+
+        let map = new Map();
+
+        for (let entry of (await results.json())) {
+            map.set(entry.id, entry);
+        }
+
+        return {
+            videos: map,
+            totalItems: totalItems
         };
-        f();
-    });
-
-    let loading = true;
+    }
 </script>
 
-<Row>
-    <h1>
-        History
+<Grid>
+    <Row>
+        <Column>
+            <h1>History</h1>
+        </Column>
+        <Column></Column>
+        <Column>
+            <div class="toggler">
+                <Toggle
+                    labelText="Display unfinished"
+                    bind:toggled={displayUnfinished}
+                    on:toggle={refreshData}
+                />
+            </div>
+        </Column>
+        <Column>
+            <Dropdown
+                titleText="Sorting"
+                bind:selectedId={sorting}
+                items={[
+                    { id: "asc", text: "Oldest" },
+                    { id: "desc", text: "Newest" }
+                ]}
+                on:select={refreshData}
+            />
+        </Column>
+    </Row>
+</Grid>
 
-        {#if $history.size > 0 && !loading}
-            ({$history.size})
-        {/if}
-    </h1>
-</Row>
+<div class="divider"></div>
 
-{#if loading}
-    <SkeletonVideoEntry />
-    <SkeletonVideoEntry />
-    <SkeletonVideoEntry />
-    <SkeletonVideoEntry />
-{:else}
-    {#each [...$history.entries()] as [id, info] (id)}
-        <VideoEntry {info} />
+{#await history}
+    <PaginationSkeleton />
+
+    {#each Array(limit) as _, i}
+        <SkeletonVideoEntry />
     {/each}
 
-    {#if $history.size === 0 && !loading}
+    <PaginationSkeleton />
+{:then result}
+    {#if result.videos.size === 0}
         <InlineNotification
             lowContrast
             kind="info"
@@ -77,5 +95,52 @@
                 e.preventDefault();
             }}
         />
+    {:else}
+        <Pagination
+            totalItems={result.totalItems}
+            pageSizes={[25, 50, 75, 100]}
+            bind:pageSize={limit}
+            bind:page
+            on:click:button--previous={refreshData}
+            on:click:button--next={refreshData}
+        />
+
+        {#each [...result.videos.entries()] as [id, info] (id)}
+            <VideoEntry {info} />
+        {/each}
+
+        <Pagination
+            totalItems={result.totalItems}
+            pageSizes={[25, 50, 75, 100]}
+            bind:pageSize={limit}
+            bind:page
+            on:update={refreshData}
+            on:click:button--previous={refreshData}
+            on:click:button--next={refreshData}
+        />
     {/if}
-{/if}
+{:catch error}
+    <InlineNotification
+        lowContrast
+        kind="error"
+        title="Failed to load history:"
+        subtitle={error}
+        on:close={(e) => {
+            e.preventDefault();
+        }}
+    >
+        <svelte:fragment slot="actions">
+            <NotificationActionButton on:click={refreshData}>Refresh</NotificationActionButton>
+        </svelte:fragment>
+    </InlineNotification>
+{/await}
+
+<style>
+    .toggler {
+        float: right;
+    }
+
+    .divider {
+        margin-bottom: 1em;
+    }
+</style>
