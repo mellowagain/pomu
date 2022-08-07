@@ -27,21 +27,12 @@
     }
 
     async function requestHistory(): Promise<HistoryResponse> {
-        let totalItems;
-
         let results = await fetch(`/api/history?page=${page - 1}&limit=${limit}&sort=${sorting}&unfinished=${displayUnfinished}`);
-
-        totalItems = +results.headers.get("X-Pomu-Pagination-Total");
-
-        let map = new Map();
-
-        for (let entry of (await results.json())) {
-            map.set(entry.id, entry);
-        }
+        let json = await results.json();
 
         return {
-            videos: map,
-            totalItems: totalItems
+            totalItems: +results.headers.get("X-Pomu-Pagination-Total"),
+            videos: new Map(json.map(entry => [entry.id, entry]))
         };
     }
 </script>
