@@ -24,8 +24,19 @@
     let history = requestHistory();
     let intervalId;
 
-    function refreshData() {
+    function refreshData(invokedByInterval = false) {
         history = requestHistory();
+
+        // If we manually refresh the data, reschedule the interval, so it doesn't cause double refreshes
+        if (!invokedByInterval) {
+            try {
+                clearInterval(intervalId);
+            } catch {
+                // In case the interval is already cleared, clearInterval will throw an error but that's fine with us so just continue
+            }
+
+            scheduleRefresh();
+        }
     }
 
     async function requestHistory(): Promise<HistoryResponse> {
@@ -39,7 +50,7 @@
     }
 
     function scheduleRefresh() {
-        intervalId = setInterval(refreshData, 30000);
+        intervalId = setInterval(() => refreshData(true), 60000);
     }
 
     function handleVisibilityChange() {
