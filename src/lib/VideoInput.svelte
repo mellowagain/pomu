@@ -1,17 +1,15 @@
 <script lang="ts">
     import {
         Button,
-        Column,
         Dropdown,
         Form,
         FormGroup,
-        ImageLoader,
         TextInput,
     } from "carbon-components-svelte";
-    import { acceptOnlyOkResponse, ApiError } from "./api";
-    import Notification from "./Notification.svelte";
+    import { acceptOnlyOkResponse } from "./api";
     import { showNotification } from "./notifications";
     import { videoInputInfoStore } from "./video";
+    import { onDestroy } from "svelte";
 
     let qualities = [];
     let disabled = true;
@@ -25,7 +23,12 @@
         qualities = [];
         selectedId = "0";
         disableQualitiesDropdown = true;
+        videoInputInfoStore.set(null);
     }
+
+    onDestroy(() => {
+        clearVideoDisplay();
+    });
 
     async function resolveQualities(_: any) {
         if (streamUrl.trim().length === 0) {
