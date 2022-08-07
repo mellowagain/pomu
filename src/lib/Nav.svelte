@@ -2,6 +2,7 @@
     import {
         Header,
         HeaderAction,
+        HeaderGlobalAction,
         HeaderNavItem,
         HeaderPanelLink,
         HeaderUtilities,
@@ -11,6 +12,7 @@
     import { currentPage, Page } from "./app";
     import { user } from "./api";
     import NavAvatar from "./NavAvatar.svelte";
+    import { LogoGithub } from "carbon-icons-svelte";
 
     currentPage.subscribe(value => {
         switch (value) {
@@ -52,6 +54,12 @@
             text="History"
         />
         <HeaderUtilities>
+            <HeaderGlobalAction
+                aria-label="GitHub"
+                icon={LogoGithub}
+                on:click={() => window.open("https://github.com/mellowagain/pomu", "_blank")}
+            />
+
             {#await user then user}
                 <HeaderAction icon={NavAvatar}>
                     <ImageLoader src={user.avatar} />
@@ -63,5 +71,3 @@
         </HeaderUtilities>
     </Header>
 </div>
-
-<style></style>
