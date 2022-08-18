@@ -15,15 +15,15 @@ Building:
 Running:
 
 * `youtube-dl` / `yt-dlp`
-* `ffmpeg`
-* Decent amount of filesystem storage
-* S3 object storage for finished files (we suggest [Backblaze][2])
-* Sentry.io project for error reporting (optional)
+  * `ffmpeg`
+  * Decent amount of filesystem storage
+  * S3 object storage for finished files (we suggest [Backblaze][2])
+  * Sentry.io project for error reporting (optional)
 
 In order to build the project, run:
 
 * Windows: `.\build.ps1`
-* macOS and Linux: `./build.sh`
+  * macOS and Linux: `./build.sh`
 
 Afterwards, rename the `.env.example` into `.env` and fill in your
 configuration options. Starting pomu.app is as simple as running `pomu`
@@ -53,6 +53,11 @@ Q: How much does it cost to run pomu.app per month?
 A: The server, paid for by [Emily][6], costs €5 per month. S3 storage, paid for
 by [Mari][5], may reach up to €15 per month.
 
+# Thank you
+
+[![Instatus](https://avatars.githubusercontent.com/u/57594402?s=400&v=4)][instatus]
+Status page provided by Instatus
+
 [0]: https://en.wikipedia.org/wiki/VTuber
 [1]: https://music.holodex.net/
 [2]: https://www.backblaze.com/
@@ -61,3 +66,4 @@ by [Mari][5], may reach up to €15 per month.
 [5]: https://twitter.com/mellowagain
 [6]: https://twitter.com/emilydotgg
 [7]: https://pomu.stoplight.io/docs/pomu
+[instatus]: https://instatus.com/
