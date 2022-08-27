@@ -252,7 +252,7 @@ func record(request VideoRequest) (size int64, err error) {
 	go func() {
 		downloaderSpan := span.StartChild("downloader")
 		defer downloaderSpan.Finish()
-		video.Download(hlsClient.Segments, muxer)
+		video.Download(id, hlsClient.Segments, muxer)
 	}()
 
 	<-finished
