@@ -13,8 +13,8 @@
             Starts in
             {#if remaining.days > 0}
                 <span>
-                    {remaining.days + remaining.months * 30} day
-                    {remaining.days === 1 ? "" : "s"}
+                    {remaining.days + remaining.months * 30}
+                    day{remaining.days === 1 ? "" : "s"}
                 </span>
             {/if}
 
