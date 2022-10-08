@@ -88,7 +88,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 
 var _ hls.RemotePlaylist = (*ytdlRemotePlaylist)(nil)
 
-var ffmpegLogs map[string]*strings.Builder = make(map[string]*strings.Builder)
+var ffmpegLogs = make(map[string]*strings.Builder)
 
 func hasLivestreamStarted(request VideoRequest) (bool, error) {
 	_, err := (&ytdlRemotePlaylist{request}).Get()
@@ -263,8 +263,13 @@ func record(request VideoRequest) (size int64, err error) {
 
 func uploadLog(s3 *s3.Client, id string) {
 	ffmpegLog := ffmpegLogs[id].String()
+	lines := strings.Split(ffmpegLog, "\n")
 
-	err := s3.Upload(fmt.Sprintf("%s.log", id), strings.NewReader(ffmpegLog))
+	if len(lines) > 3 {
+		lines = lines[3:]
+	}
+
+	err := s3.Upload(fmt.Sprintf("%s.log", id), strings.NewReader(strings.Join(lines, "\n")))
 	if err != nil {
 		log.Println(id, "uploadLog: s3.Upload2():", err)
 		sentry.CaptureException(err)
