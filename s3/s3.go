@@ -19,10 +19,12 @@ type Client struct {
 
 func New(bucket string) (*Client, error) {
 	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(os.Getenv("S3_KEY_ID"), os.Getenv("S3_APPLICATION_KEY"), ""),
-		Endpoint:         aws.String(os.Getenv("S3_ENDPOINT")),
-		Region:           aws.String(os.Getenv("S3_REGION")),
-		S3ForcePathStyle: aws.Bool(true),
+		Credentials:             credentials.NewStaticCredentials(os.Getenv("S3_KEY_ID"), os.Getenv("S3_APPLICATION_KEY"), ""),
+		Endpoint:                aws.String(os.Getenv("S3_ENDPOINT")),
+		Region:                  aws.String(os.Getenv("S3_REGION")),
+		S3ForcePathStyle:        aws.Bool(true),
+		MaxRetries:              aws.Int(10),
+		EnforceShouldRetryCheck: aws.Bool(true),
 	}
 	newSession, err := session.NewSession(s3Config)
 
