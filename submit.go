@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"pomu/qualities"
 	"strings"
 	"time"
 
@@ -35,7 +36,7 @@ type VideoRequest struct {
 }
 
 func (r *VideoRequest) Id() (string, error) {
-	return ParseVideoID(r.VideoUrl), nil
+	return qualities.ParseVideoID(r.VideoUrl), nil
 }
 
 func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +68,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	videoId := ParseVideoID(request.VideoUrl)
+	videoId := qualities.ParseVideoID(request.VideoUrl)
 	videoMetadata, err := GetVideoMetadataWithToken(videoId, token)
 
 	if err != nil {
@@ -261,7 +262,7 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	qualities, cached, err := GetVideoQualities(url, false)
+	qualities, cached, err := qualities.GetVideoQualities(url, false)
 
 	if err != nil {
 		sentry.CaptureException(err)

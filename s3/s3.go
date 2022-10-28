@@ -42,6 +42,8 @@ func (client *Client) Upload(path string, reader io.Reader) error {
 		Body:   reader,
 		Bucket: aws.String(client.bucket),
 		Key:    aws.String(path),
+	}, func(u *s3manager.Uploader) {
+		u.LeavePartsOnError = true
 	})
 	return err
 }
