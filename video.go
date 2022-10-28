@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"pomu/hls"
+	"pomu/qualities"
 	"pomu/s3"
 	"pomu/video"
 	"strconv"
@@ -40,7 +41,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 	// Check that we are trying to record a valid quality
 	if p.request.Quality <= 0 {
 		// Stream was queued ahead of time, select best quality
-		qualities, _, err := GetVideoQualities(p.request.VideoUrl, true)
+		qualities, _, err := qualities.GetVideoQualities(p.request.VideoUrl, true)
 		if err != nil {
 			log.Panicln("Whilst trying to get playlist url, was unable to get qualities for video")
 			return "", err
@@ -319,7 +320,7 @@ func (app *Application) Log(w http.ResponseWriter, r *http.Request) {
 	if len(ytUrl) == 0 {
 		id = r.URL.Query().Get("id")
 	} else {
-		id = ParseVideoID(ytUrl)
+		id = qualities.ParseVideoID(ytUrl)
 	}
 	if log, ok := ffmpegLogs[id]; ok {
 		_, err := w.Write([]byte(log.String()))
