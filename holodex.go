@@ -21,6 +21,7 @@ func QueueUpcomingStreams(app *Application) {
 
 		if err != nil {
 			log.Printf("failed to query upcoming streams for org %s\n", org)
+			continue
 		}
 
 		log.Printf("found %d streams for %s matching holodex criteria\n", len(streams), org)
