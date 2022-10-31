@@ -3,12 +3,9 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"pomu/qualities"
-	"pomu/s3"
 	"strings"
 	"time"
 
@@ -129,21 +126,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Find a suitable thumbnail
-		thumbnailUrl := ""
-		for _, thumbnail := range []*youtube.Thumbnail{
-			videoMetadata.Snippet.Thumbnails.Maxres,
-			videoMetadata.Snippet.Thumbnails.High,
-			videoMetadata.Snippet.Thumbnails.Medium,
-			videoMetadata.Snippet.Thumbnails.Standard,
-			videoMetadata.Snippet.Thumbnails.Default,
-		} {
-			if thumbnail != nil {
-				thumbnailUrl = thumbnail.Url
-				break
-			}
-		}
-		thumbnailUrl, err = saveThumbnail(videoId, thumbnailUrl)
+		thumbnailUrl, err := SaveThumbnail(videoId, FindSuitableThumbnail(videoMetadata.Snippet.Thumbnails))
+
 		if err != nil {
 			http.Error(w, "Failed to save thumbnail for video "+videoId, http.StatusInternalServerError)
 			return
@@ -295,28 +279,4 @@ func PeekForQualities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	SerializeJson(w, qualities)
-}
-
-// Saves a thumbnail to S3
-func saveThumbnail(id string, url string) (string, error) {
-	s3Client, err := s3.New(os.Getenv("S3_BUCKET"))
-
-	if err != nil {
-		log.Printf("[warn] failed to create s3 client in order to upload thumbnail: %s\n", err)
-		return url, err
-	}
-
-	response, err := http.Get(url)
-
-	if err != nil {
-		log.Printf("[warn] failed to get thumbnail from youtube: %s\n", err)
-		return url, err
-	}
-
-	if err := s3Client.Upload(fmt.Sprintf("%s.jpg", id), response.Body); err != nil {
-		log.Println("s3 thumbnail upload failed:", err)
-		return url, err
-	}
-
-	return fmt.Sprintf("%s/%s.jpg", os.Getenv("S3_DOWNLOAD_URL"), id), nil
 }
