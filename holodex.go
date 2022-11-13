@@ -14,7 +14,14 @@ import (
 )
 
 func QueueUpcomingStreams(app *Application) {
-	orgs := strings.Split(os.Getenv("HOLODEX_ORGS"), ",")
+	orgsList := strings.TrimSpace(os.Getenv("HOLODEX_ORGS"))
+
+	// skip if no args were selected in the .env file
+	if len(orgsList) <= 0 {
+		return
+	}
+
+	orgs := strings.Split(orgsList, ",")
 
 	for _, org := range orgs {
 		streams, err := queryUpcomingStreams(org)

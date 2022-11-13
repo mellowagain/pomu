@@ -54,7 +54,7 @@ func main() {
 	if strings.ToLower(os.Getenv("HOLODEX_ENABLE")) == "true" {
 		log.Println("Holodex auto fetching is enabled")
 
-		if _, err := Scheduler.SingletonMode().Every("1h").LimitRunsTo(1).StartImmediately().Do(QueueUpcomingStreams, app); err != nil {
+		if _, err := Scheduler.SingletonMode().Every("1h").StartImmediately().Do(QueueUpcomingStreams, app); err != nil {
 			sentry.CaptureException(err)
 		}
 	}
