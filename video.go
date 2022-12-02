@@ -130,6 +130,8 @@ func recordFinished(db *sql.DB, id string, size int64) error {
 		return err
 	}
 
+	defer tx.Rollback()
+
 	length := videoLengthFromLog(id)
 
 	log.Println("Finishing video", id, "with size", size, "and length", length)
@@ -156,10 +158,15 @@ func recordFailed(db *sql.DB, id string) error {
 	// TODO(emily): Probably want to make sure that s3 is cleaned up as well
 
 	tx, err := db.Begin()
+
 	if err != nil {
 		return err
 	}
+
+	defer tx.Rollback()
+
 	_, err = tx.Exec("delete from videos where id = $1", id)
+
 	if err != nil {
 		return err
 	}

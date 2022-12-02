@@ -32,6 +32,8 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer tx.Rollback()
+
 	whereClause := ""
 
 	if !showUnfinished {

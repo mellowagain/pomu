@@ -16,6 +16,8 @@ func (app *Application) GetStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer tx.Rollback()
+
 	videoAmount := 0
 	totalFileSize := 0
 	totalLength := 0
