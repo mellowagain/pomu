@@ -48,6 +48,8 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 		return nil, err
 	}
 
+	defer tx.Rollback()
+
 	statement, err := tx.Prepare("select * from users where id = $1 limit 1")
 
 	if err != nil {
@@ -81,6 +83,8 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 		sentry.CaptureException(err)
 		return nil, err
 	}
+
+	defer tx.Rollback()
 
 	statement, err := tx.Prepare("insert into users (id, name, avatar) values ($1, $2, $3) returning *")
 

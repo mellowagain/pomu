@@ -62,12 +62,14 @@ func QueueUpcomingStreams(app *Application) {
 
 			// Video already exists in db, skip it
 			if err == nil {
+				tx.Rollback()
 				log.Printf("skipping %s as it already is scheduled to be saved", stream.Id)
 				continue
 			}
 
 			videoMetadata, err := GetVideoMetadata(stream.Id)
 			if err != nil {
+				tx.Rollback()
 				sentry.CaptureException(err)
 				log.Printf("failed to get video meta data for %s: %s", stream.Id, err)
 				continue
@@ -76,6 +78,7 @@ func QueueUpcomingStreams(app *Application) {
 			startTime, err := GetVideoStartTime(videoMetadata)
 
 			if err != nil {
+				tx.Rollback()
 				sentry.CaptureException(err)
 				log.Printf("failed to get video start time for %s: %s\n", stream.Id, err)
 				continue
@@ -84,6 +87,7 @@ func QueueUpcomingStreams(app *Application) {
 			thumbnailUrl, err := SaveThumbnail(stream.Id, FindSuitableThumbnail(videoMetadata.Snippet.Thumbnails))
 
 			if err != nil {
+				tx.Rollback()
 				sentry.CaptureException(err)
 				log.Printf("failed to save thumbnail for %s: %s\n", stream.Id, err)
 				continue
@@ -92,6 +96,7 @@ func QueueUpcomingStreams(app *Application) {
 			statement, err := tx.Prepare("insert into videos (id, submitters, start, title, channel_name, channel_id, thumbnail) values ($1, $2, $3, $4, $5, $6, $7) returning *")
 
 			if err != nil {
+				tx.Rollback()
 				sentry.CaptureException(err)
 				log.Printf("failed to create video for %s\n", stream.Id)
 				continue
@@ -100,6 +105,7 @@ func QueueUpcomingStreams(app *Application) {
 			row := statement.QueryRow(stream.Id, pq.Array([]string{"pomu.app"}), startTime, videoMetadata.Snippet.Title, videoMetadata.Snippet.ChannelTitle, videoMetadata.Snippet.ChannelId, thumbnailUrl)
 
 			if err := row.Err(); err != nil {
+				tx.Rollback()
 				sentry.CaptureException(err)
 				log.Printf("failed to create video for %s\n", stream.Id)
 				continue
@@ -115,6 +121,7 @@ func QueueUpcomingStreams(app *Application) {
 				&video.Thumbnail,
 				&video.FileSize,
 				&video.Length); err != nil {
+				tx.Rollback()
 				log.Printf("failed to get video for %s\n", stream.Id)
 				sentry.CaptureException(err)
 

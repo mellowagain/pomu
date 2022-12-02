@@ -104,6 +104,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer tx.Rollback()
+
 	var video Video
 	err = tx.QueryRow("select * from videos where id = $1 limit 1", videoId).Scan(
 		&video.Id,

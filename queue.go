@@ -17,6 +17,8 @@ func (app *Application) getQueue() (videos []Video, err error) {
 		return
 	}
 
+	defer tx.Rollback()
+
 	rows, err := tx.Query("select * from videos where finished = false order by start")
 
 	if err != nil {
