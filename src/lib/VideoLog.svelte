@@ -25,7 +25,7 @@
         });
         if (result.status != 200) {
             // Might be an in-progress log
-            result = await fetch("/api/logz?id=" + id, { method });
+            result = await fetch("/api/logz?url=" + encodeURIComponent("https://youtu.be/" + id), { method });
         }
 
         if (result.status != 200) {
