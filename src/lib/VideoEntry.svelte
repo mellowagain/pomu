@@ -131,7 +131,14 @@
 
     <UnorderedList>
         {#each info.submitters as submitter}
-            <ListItem>{submitter}</ListItem>
+            {#if submitter === "pomu.app"}
+                <ListItem>
+                    Automatically added to queue by pomu.app.
+                    <OutboundLink href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API">Learn more</OutboundLink>
+                </ListItem>
+            {:else }
+                <ListItem>{submitter}</ListItem>
+            {/if}
         {/each}
     </UnorderedList>
 </Modal>
