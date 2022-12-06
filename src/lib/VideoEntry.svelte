@@ -2,14 +2,13 @@
     import {
         Button,
         Column,
-        ImageLoader,
-        Link,
+        ImageLoader, InlineNotification,
+        Link, ListItem,
         Modal,
         OutboundLink,
         Row,
-        SkeletonPlaceholder,
         Tile,
-        TooltipIcon,
+        TooltipIcon, UnorderedList,
     } from "carbon-components-svelte";
     import dayjs from "dayjs";
     import duration from "dayjs/plugin/duration";
@@ -123,9 +122,18 @@
     passiveModal
     modalHeading={"Submitted by"}
 >
-    {#each info.submitters as submitter}
-        /{submitter}/
-    {/each}
+    <InlineNotification
+        lowContrast
+        hideCloseButton
+        kind="info"
+        subtitle="To protect user privacy, only user IDs are displayed"
+    />
+
+    <UnorderedList>
+        {#each info.submitters as submitter}
+            <ListItem>{submitter}</ListItem>
+        {/each}
+    </UnorderedList>
 </Modal>
 
 <style>

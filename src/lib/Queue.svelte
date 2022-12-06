@@ -72,11 +72,9 @@
     {#if $queue.size === 0 && !loading}
         <InlineNotification
             lowContrast
+            hideCloseButton
             kind="info"
             subtitle="There are currently no streams in the queue"
-            on:close={(e) => {
-                e.preventDefault();
-            }}
         />
     {/if}
 {/if}

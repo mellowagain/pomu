@@ -114,6 +114,7 @@
     {#if result.videos.size === 0}
         <InlineNotification
             lowContrast
+            hideCloseButton
             kind="info"
             subtitle="No streams have finished recording"
             on:close={(e) => {
@@ -147,12 +148,10 @@
 {:catch error}
     <InlineNotification
         lowContrast
+        hideCloseButton
         kind="error"
         title="Failed to load history:"
         subtitle={error}
-        on:close={(e) => {
-            e.preventDefault();
-        }}
     >
         <svelte:fragment slot="actions">
             <NotificationActionButton on:click={refreshData}>Refresh</NotificationActionButton>
