@@ -122,12 +122,14 @@
     passiveModal
     modalHeading={"Submitted by"}
 >
-    <InlineNotification
-        lowContrast
-        hideCloseButton
-        kind="info"
-        subtitle="To protect user privacy, only user IDs are displayed"
-    />
+    {#if info.submitters.length !== 1 || info.submitters[0] !== "pomu.app"}
+        <InlineNotification
+            lowContrast
+            hideCloseButton
+            kind="info"
+            subtitle="To protect user privacy, only user IDs are displayed"
+        />
+    {/if}
 
     <UnorderedList>
         {#each info.submitters as submitter}
