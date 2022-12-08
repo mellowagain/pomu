@@ -5,7 +5,7 @@
     import { onDestroy } from "svelte";
 
     export let id: string;
-    export let downloadUrl: string;
+    export let downloadUrl: string | undefined;
 
     onDestroy(() => {
         logCancelled();
@@ -19,12 +19,14 @@
     });
 
     let getLog = async (method: string) => {
-        // Try cdn first
-        let result = await fetch(downloadUrl.replace("mp4", "log"), {
-            method,
-        });
-        if (result.status != 200) {
-            // Might be an in-progress log
+        let result;
+
+        if (downloadUrl) {
+            result = await fetch(downloadUrl.replace("mp4", "log"), {
+                method,
+            });
+        } else {
+            // in-progress log
             result = await fetch("/api/logz?url=" + encodeURIComponent("https://youtu.be/" + id), { method });
         }
 
