@@ -54,20 +54,22 @@ func (app *Application) GetStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stats := Stats{
-		VideoAmount:    videoAmount,
-		TotalFileSize:  totalFileSize,
-		TotalLength:    totalLength,
-		UniqueChannels: uniqueChannels,
-		S3BillPerMonth: s3Bill,
+		VideoAmount:      videoAmount,
+		TotalFileSize:    totalFileSize,
+		TotalLength:      totalLength,
+		UniqueChannels:   uniqueChannels,
+		S3BillPerMonth:   s3Bill,
+		UsdPerGbPerMonth: usdPerGbPerMonth,
 	}
 
 	SerializeJson(w, stats)
 }
 
 type Stats struct {
-	VideoAmount    int     `json:"videoAmount"`
-	TotalFileSize  int     `json:"totalFileSize"`
-	TotalLength    int     `json:"totalLength"`
-	UniqueChannels int     `json:"uniqueChannels"`
-	S3BillPerMonth float64 `json:"s3BillPerMonth"`
+	VideoAmount      int     `json:"videoAmount"`
+	TotalFileSize    int     `json:"totalFileSize"`
+	TotalLength      int     `json:"totalLength"`
+	UniqueChannels   int     `json:"uniqueChannels"`
+	S3BillPerMonth   float64 `json:"s3BillPerMonth"`
+	UsdPerGbPerMonth float64 `json:"usdPerGbPerMonth"`
 }

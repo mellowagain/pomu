@@ -50,7 +50,7 @@
                     id: 4,
                     key: "S3 Bill",
                     value: "$" + Number(result.s3BillPerMonth.toFixed(3)),
-                    description: "Storage costs per month",
+                    description: "Storage costs per month ($" + Number(result.usdPerGbPerMonth.toFixed(3)) + "/GB/month)",
                 },
             ];
         } catch (e) {
