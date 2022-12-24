@@ -38,7 +38,7 @@ jobs:
           node-version: '19'
           cache: 'yarn'
       - name: Download / Refresh dependencies
-        run: yarn install --immutable
+        run: yarn install --immutable --immutable-cache
       - name: Build
         run: yarn build
       - name: Upload frontend build artifacts
