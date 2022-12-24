@@ -21,7 +21,7 @@ jobs:
           check-latest: true
           cache: true
       - name: Build
-        run: go build -v
+        run: go build -v -ldflags "-X main.GitHash=${GITHUB_SHA}"
       - name: Upload backend build artifact
         uses: actions/upload-artifact@v2
         with:
@@ -38,7 +38,7 @@ jobs:
           node-version: '18'
           cache: 'yarn'
       - name: Download / Refresh dependencies
-        run: yarn install --immutable --immutable-cache
+        run: yarn install --immutable
       - name: Build
         run: yarn build
       - name: Upload frontend build artifacts
