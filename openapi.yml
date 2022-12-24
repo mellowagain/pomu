@@ -18,6 +18,12 @@ servers:
   - url: https://dev.pomu.app/api
     description: Development instance
 
+x-topics:
+  - title: Notice
+    content: |
+      This API documentation is for the `pomu.app` API server, which does not host files.
+      If you wish to access files (`.mp4`, `.jpg` or `.log`), [please see the API documentation for our CDN](https://docs-cdn.pomu.app).
+
 components:
   schemas:
     video:
@@ -288,3 +294,7 @@ paths:
                     type: number
                     format: double
                     description: S3 bill per month in USD
+                  usdPerGbPerMonth:
+                    type: number
+                    format: double
+                    description: Cost of a single gigabyte of data per month for S3

@@ -1,0 +1,53 @@
+name: Check & deploy API documentation
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  deploy-doc:
+    if: ${{ github.event_name == 'push' }}
+    name: Deploy API documentation on Bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Deploy `openapi.yml`
+        uses: bump-sh/github-action@v1
+        with:
+          doc: pomu
+          token: ${{ secrets.BUMP_ACCESS_TOKEN }}
+          file: openapi.yml
+      - name: Deploy `openapi_cdn.yml`
+        uses: bump-sh/github-action@v1
+        with:
+          doc: pomu-cdn
+          token: ${{ secrets.BUMP_CDN_ACCESS_TOKEN }}
+          file: openapi_cdn.yml
+  api-diff:
+    if: ${{ github.event_name == 'pull_request' }}
+    name: Check API diff on Bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Diff `openapi.yml`
+        uses: bump-sh/github-action@v1
+        with:
+          doc: pomu
+          token: ${{ secrets.BUMP_ACCESS_TOKEN }}
+          file: openapi.yml
+          command: diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Diff `openapi_cdn.yml`
+        uses: bump-sh/github-action@v1
+        with:
+          doc: pomu-cdn
+          token: ${{ secrets.BUMP_CDN_ACCESS_TOKEN }}
+          file: openapi_cdn.yml
+          command: diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

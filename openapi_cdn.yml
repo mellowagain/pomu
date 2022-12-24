@@ -18,6 +18,12 @@ servers:
   - url: https://dev-cdn.pomu.app/file/pomu-dev
     description: Development CDN
 
+x-topics:
+  - title: Notice
+    content: |
+      This API documentation is for the `pomu.app` CDN server, which only host files.
+      If you wish to access meta data (queue, history), [please see the API documentation for our API](https://docs.pomu.app).
+
 components:
   parameters:
     videoID:
