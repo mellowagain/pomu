@@ -38,9 +38,13 @@ jobs:
           node-version: '19'
           cache: 'yarn'
       - name: Download / Refresh dependencies
-        run: yarn install --immutable
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install --immutable
       - name: Build
-        run: yarn build
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: build
       - name: Upload frontend build artifacts
         uses: actions/upload-artifact@v2
         with:
