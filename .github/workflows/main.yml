@@ -23,7 +23,7 @@ jobs:
       - name: Build
         run: go build -v -ldflags "-X main.GitHash=${GITHUB_SHA}"
       - name: Upload backend build artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: backend
           path: pomu
@@ -38,11 +38,11 @@ jobs:
           node-version: '19'
           cache: 'yarn'
       - name: Download / Refresh dependencies
-        run: yarn install --immutable
+        run: yarn install --immutable --immutable-cache
       - name: Build
         run: yarn build
       - name: Upload frontend build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: frontend
           path: dist/
