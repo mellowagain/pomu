@@ -56,6 +56,7 @@ by [Mari][5], may reach up to €15 per month.
 # Thank you
 
 [![Instatus](https://avatars.githubusercontent.com/u/57594402?s=400&v=4)][instatus]
+
 Status page provided by Instatus
 
 [0]: https://en.wikipedia.org/wiki/VTuber

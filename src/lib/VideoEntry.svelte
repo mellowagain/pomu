@@ -2,13 +2,16 @@
     import {
         Button,
         Column,
-        ImageLoader, InlineNotification,
-        Link, ListItem,
+        ImageLoader,
+        InlineNotification,
+        Link,
+        ListItem,
         Modal,
         OutboundLink,
         Row,
         Tile,
-        TooltipIcon, UnorderedList,
+        TooltipIcon,
+        UnorderedList,
     } from "carbon-components-svelte";
     import dayjs from "dayjs";
     import duration from "dayjs/plugin/duration";
@@ -44,7 +47,7 @@
 
 <Tile style="margin: 20px">
     <Row padding>
-        <Column>
+        <Column style="flex-grow: 0">
             <div style="width: 200px">
                 <ImageLoader src={info.thumbnail} />
             </div>
@@ -136,9 +139,12 @@
             {#if submitter === "pomu.app"}
                 <ListItem>
                     Automatically added to queue by pomu.app.
-                    <OutboundLink href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API">Learn more</OutboundLink>
+                    <OutboundLink
+                        href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API"
+                        >Learn more</OutboundLink
+                    >
                 </ListItem>
-            {:else }
+            {:else}
                 <ListItem>{submitter}</ListItem>
             {/if}
         {/each}
