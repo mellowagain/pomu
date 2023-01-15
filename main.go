@@ -30,7 +30,7 @@ func main() {
 	log.SetPrefix("[Pomu] ")
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatalln("Failed to load .env file")
+		log.Printf("warning: failed to load .env file: %s\n", err)
 	}
 
 	setupSentry()
@@ -178,7 +178,7 @@ func checkYouTubeDl() {
 	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to find youtube-dl: %s\n", err)
+		log.Fatalf("Failed to find youtube-dl (%s): %s\n", err, output)
 	}
 
 	log.Printf("Found youtube-dl version %s\n", strings.TrimSpace(output.String()))
