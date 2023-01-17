@@ -33,7 +33,9 @@ RUN apt-get install -y --no-install-recommends ffmpeg
 ENV FFMPEG="/usr/bin/ffmpeg"
 
 # cleanup apt
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get clean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
 # direct pomu dependency: youtube-dl
 RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
