@@ -1,11 +1,13 @@
-create table users
+begin;
+
+create table if not exists users
 (
     id     varchar      not null primary key,
     name   varchar(128) not null,
     avatar varchar      not null
 );
 
-create table videos
+create table if not exists videos
 (
     id           varchar                  not null primary key,
     submitters   character varying[]      not null,
@@ -21,3 +23,5 @@ create table videos
 
 comment on column videos.file_size is 'in bytes';
 comment on column videos.video_length is 'in seconds';
+
+commit;

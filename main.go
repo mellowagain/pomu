@@ -4,11 +4,15 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"golang.org/x/exp/rand"
 	"log"
 	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
@@ -28,6 +32,7 @@ type Application struct {
 
 func main() {
 	log.SetPrefix("[Pomu] ")
+	rand.Seed(uint64(time.Now().UnixNano()))
 
 	if err := godotenv.Load(); err != nil {
 		log.Printf("warning: failed to load .env file: %s\n", err)
@@ -42,6 +47,23 @@ func main() {
 
 	if len(address) <= 0 {
 		address = ":8080"
+	}
+
+	db := Connect()
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+
+	if err != nil {
+		log.Fatalf("failed to setup database driver: %s", err)
+	}
+
+	migrator, err := migrate.NewWithDatabaseInstance("file://migrations", "pomu", driver)
+
+	if err != nil {
+		log.Fatalf("failed to initialize migrations: %s", err)
+	}
+
+	if err := migrator.Up(); err != nil {
+		log.Fatalf("failed to run migrations: %s", err)
 	}
 
 	app := &Application{
