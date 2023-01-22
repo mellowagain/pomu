@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/getsentry/sentry-go"
+	"golang.org/x/exp/rand"
 	"net/http"
 )
 
@@ -19,4 +21,10 @@ func SerializeJson(writer http.ResponseWriter, value any) {
 		sentry.CaptureException(err)
 		http.Error(writer, "failed to serialize response to json", http.StatusInternalServerError)
 	}
+}
+
+func RandomString(length int) string {
+	b := make([]byte, length)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)[:length]
 }

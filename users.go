@@ -1,46 +1,45 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 
 	"github.com/getsentry/sentry-go"
-	"golang.org/x/oauth2"
-	googleOauth2 "google.golang.org/api/oauth2/v2"
-	"google.golang.org/api/option"
+)
+
+const (
+	ProviderGoogle  = "google"
+	ProviderDiscord = "discord"
 )
 
 type User struct {
-	Id     string `json:"id"`
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
+	Id       string `json:"id"`
+	Name     string `json:"name"`
+	Avatar   string `json:"avatar"`
+	Provider string `json:"provider"`
 }
 
-// ResolveUser gets the user using the token
-func ResolveUser(token *oauth2.Token, db *sql.DB) (*User, error) {
-	service, err := googleOauth2.NewService(context.Background(), option.WithTokenSource(oauth2.StaticTokenSource(token)))
+// ValidateOrCreateUser gets the user based on ID and provider and if they do not exist, registers them. Returns redirect URL
+func ValidateOrCreateUser(id string, name string, avatarUrl string, provider string, db *sql.DB) (string, error) {
+	user, err := GetUser(id, provider, db)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	userInfoService := googleOauth2.NewUserinfoService(service)
-	info, err := userInfoService.Get().Do()
+	if user == nil {
+		_, err := CreateUser(id, name, avatarUrl, provider, db)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return "", err
+		}
+
+		return "/?successRegister", nil
+	} else {
+		return "/?success", nil
 	}
-
-	user, err := GetUser(info.Id, db)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
 }
 
-func GetUser(id string, db *sql.DB) (*User, error) {
+func GetUser(id string, provider string, db *sql.DB) (*User, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -50,7 +49,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 
 	defer tx.Rollback()
 
-	statement, err := tx.Prepare("select * from users where id = $1 limit 1")
+	statement, err := tx.Prepare("select * from users where id = $1 and provider = $2 limit 1")
 
 	if err != nil {
 		sentry.CaptureException(err)
@@ -59,7 +58,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 
 	var user User
 
-	if err = statement.QueryRow(id).Scan(&user.Id, &user.Name, &user.Avatar); err != nil {
+	if err = statement.QueryRow(id, provider).Scan(&user.Id, &user.Name, &user.Avatar, &user.Provider); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		} else {
@@ -76,7 +75,7 @@ func GetUser(id string, db *sql.DB) (*User, error) {
 	return &user, nil
 }
 
-func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
+func CreateUser(id string, name string, avatarUrl string, provider string, db *sql.DB) (*User, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -86,7 +85,7 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 
 	defer tx.Rollback()
 
-	statement, err := tx.Prepare("insert into users (id, name, avatar) values ($1, $2, $3) returning *")
+	statement, err := tx.Prepare("insert into users (id, name, avatar, provider) values ($1, $2, $3, $4) returning *")
 
 	if err != nil {
 		sentry.CaptureException(err)
@@ -95,7 +94,7 @@ func CreateUser(userInfo *googleOauth2.Userinfo, db *sql.DB) (*User, error) {
 
 	var user User
 
-	if err = statement.QueryRow(userInfo.Id, userInfo.GivenName, userInfo.Picture).Scan(&user.Id, &user.Name, &user.Avatar); err != nil {
+	if err = statement.QueryRow(id, name, avatarUrl, provider).Scan(&user.Id, &user.Name, &user.Avatar, &user.Provider); err != nil {
 		sentry.CaptureException(err)
 		return nil, err
 	}
