@@ -130,9 +130,11 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/stats", app.GetStats).Methods("GET")
 
 	// OAuth
-	r.HandleFunc("/login", OauthLoginHandler).Methods("GET")
-	r.HandleFunc("/oauth/redirect", app.OauthRedirectHandler).Methods("GET")
-	r.HandleFunc("/api/user", app.User).Methods(http.MethodGet)
+	r.HandleFunc("/api/user", app.identifySelf).Methods(http.MethodGet)
+
+	// Discord OAuth
+	r.HandleFunc("/oauth/discord", app.DiscordOAuthInitiator).Methods("GET")
+	r.HandleFunc("/oauth/discord/redirect", app.DiscordOAuthRedirect).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(address, c.Handler(r)))
 }
@@ -224,25 +226,6 @@ func checkFfmpeg() {
 	log.Println("Found", before)
 }
 
-// GitHash will be filled by the build script
-var GitHash string
-
-func apiOverview(w http.ResponseWriter, _ *http.Request) {
-	if len(GitHash) <= 0 {
-		http.Error(w, "pomu was incorrectly built. please see readme.md", http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]string{
-		"app":           "pomu.app",
-		"documentation": "https://docs.pomu.app",
-		"repository":    "https://github.com/mellowagain/pomu",
-		"commit":        GitHash,
-	}
-
-	SerializeJson(w, response)
-}
-
 func (app *Application) restartRecording() {
 	queue, err := app.getQueue()
 
@@ -268,4 +251,34 @@ func (app *Application) restartRecording() {
 			Quality: 0,
 		})
 	}
+}
+
+// GitHash will be filled by the build script
+var GitHash string
+
+func apiOverview(w http.ResponseWriter, _ *http.Request) {
+	if len(GitHash) <= 0 {
+		http.Error(w, "pomu was incorrectly built. please see readme.md", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"app":           "pomu.app",
+		"documentation": "https://docs.pomu.app",
+		"repository":    "https://github.com/mellowagain/pomu",
+		"commit":        GitHash,
+	}
+
+	SerializeJson(w, response)
+}
+
+func (app *Application) identifySelf(w http.ResponseWriter, r *http.Request) {
+	user, err := app.ResolveUserFromRequest(r)
+
+	if err != nil || user == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	SerializeJson(w, user)
 }

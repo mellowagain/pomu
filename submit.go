@@ -12,7 +12,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/lib/pq"
 	"golang.org/x/exp/slices"
-	"golang.org/x/oauth2"
 	"google.golang.org/api/youtube/v3"
 )
 
@@ -47,29 +46,15 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("pomu")
+	user, err := app.ResolveUserFromRequest(r)
 
-	if err != nil {
+	if user == nil || err != nil {
 		http.Error(w, "please login first", http.StatusUnauthorized)
 		return
 	}
 
-	var token *oauth2.Token
-
-	if err = app.secureCookie.Decode("oauthToken", cookie.Value, &token); err != nil {
-		http.Error(w, "please login again", http.StatusUnauthorized)
-		return
-	}
-
-	user, err := ResolveUser(token, app.db)
-
-	if user == nil || err != nil {
-		http.Error(w, "failed to resolve user", http.StatusUnauthorized)
-		return
-	}
-
 	videoId := qualities.ParseVideoID(request.VideoUrl)
-	videoMetadata, err := GetVideoMetadataWithToken(videoId, token)
+	videoMetadata, err := GetVideoMetadataWithToken(videoId)
 
 	if err != nil {
 		http.Error(w, "failed to get video metadata", http.StatusBadRequest)
@@ -143,7 +128,13 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		row := statement.QueryRow(videoId, pq.Array([]string{user.Id}), startTime, videoMetadata.Snippet.Title, videoMetadata.Snippet.ChannelTitle, videoMetadata.Snippet.ChannelId, thumbnailUrl)
+		row := statement.QueryRow(videoId,
+			pq.Array([]string{user.Provider + "/" + user.Id}),
+			startTime,
+			videoMetadata.Snippet.Title,
+			videoMetadata.Snippet.ChannelTitle,
+			videoMetadata.Snippet.ChannelId,
+			thumbnailUrl)
 
 		if err := row.Err(); err != nil {
 			sentry.CaptureException(err)
@@ -168,7 +159,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 		reschedule = true
 	} else {
-		if !slices.Contains(video.Submitters, user.Id) {
+		if !slices.Contains(video.Submitters, user.Provider+"/"+user.Id) {
 			statement, err := tx.Prepare("update videos set submitters = array_append(submitters, $1), start = $2 where id = $3 returning *")
 
 			if err != nil {
@@ -177,7 +168,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if err := statement.QueryRow(user.Id, startTime, video.Id).
+			if err := statement.QueryRow(user.Provider+"/"+user.Id, startTime, video.Id).
 				Scan(&video.Id,
 					pq.Array(&video.Submitters),
 					&video.Start,

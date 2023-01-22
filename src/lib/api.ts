@@ -2,7 +2,8 @@
 export interface User {
     id: string,
     name: string,
-    avatar: string
+    avatar: string,
+    provider: string
 }
 
 export async function apiUser(): Promise<User> {

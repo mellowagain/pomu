@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 )
 
-func GetVideoMetadataWithToken(videoId string, token *oauth2.Token) (*youtube.Video, error) {
-	service, err := youtube.NewService(context.Background(), option.WithTokenSource(oauth2.StaticTokenSource(token)))
+func GetVideoMetadataWithToken(videoId string) (*youtube.Video, error) {
+	service, err := youtube.NewService(context.Background(), option.WithAPIKey(os.Getenv("GOOGLE_API_KEY")))
 
 	if err != nil {
 		return nil, err

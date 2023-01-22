@@ -20,7 +20,7 @@
     <div style="padding: 20px" />
     <Grid>
         <div transition:fade>
-            {#if $currentPage == Page.Video}
+            {#if $currentPage === Page.Video}
                 <Row>
                     <Column>
                         <Heading />
@@ -32,9 +32,9 @@
                         <VideoInput />
                     </Column>
                 </Row>
-            {:else if $currentPage == Page.Queue}
+            {:else if $currentPage === Page.Queue}
                 <Queue />
-            {:else if $currentPage == Page.History}
+            {:else if $currentPage === Page.History}
                 <History />
             {/if}
         </div>
