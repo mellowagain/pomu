@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"golang.org/x/exp/rand"
 	"log"
 	"net/http"
@@ -17,6 +15,10 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"os"
 
@@ -67,7 +69,7 @@ func main() {
 	}
 
 	app := &Application{
-		db:           Connect(),
+		db:           db,
 		secureCookie: setupSecureCookie(),
 	}
 
