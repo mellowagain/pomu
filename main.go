@@ -65,7 +65,9 @@ func main() {
 	}
 
 	if err := migrator.Up(); err != nil {
-		log.Fatalf("failed to run migrations: %s", err)
+		if err.Error() != "no change" {
+			log.Fatalf("failed to run migrations: %s", err)
+		}
 	}
 
 	app := &Application{
