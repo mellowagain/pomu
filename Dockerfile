@@ -43,6 +43,7 @@ RUN chmod +x /usr/local/bin/youtube-dl
 ENV YOUTUBE_DL="/usr/local/bin/youtube-dl"
 
 COPY --from=frontend-builder /usr/src/pomu/dist /app/dist
+COPY --from=backend-builder /usr/src/pomu/migrations /app/migrations
 COPY --from=backend-builder /usr/src/pomu/pomu /app/
 
 EXPOSE 8080
