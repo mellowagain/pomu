@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
@@ -67,7 +66,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if video.Finished {
-			video.DownloadUrl = fmt.Sprintf("%s/%s.mp4", os.Getenv("S3_DOWNLOAD_URL"), video.Id)
+			video.DownloadUrl = fmt.Sprintf("/api/download/%s/video", video.Id)
 		}
 
 		videos = append(videos, video)

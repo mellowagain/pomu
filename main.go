@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/rand"
 	"log"
 	"net/http"
@@ -110,6 +111,9 @@ func setupServer(address string, app *Application) {
 	fileServer := http.FileServer(http.Dir("./dist/assets"))
 	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", fileServer))
 
+	// Prometheus
+	r.Handle("/metrics", promhttp.Handler())
+
 	// == API ==
 
 	r.HandleFunc("/api", apiOverview).Methods("GET")
@@ -124,6 +128,9 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/submit", app.SubmitVideo).Methods("POST")
 	r.HandleFunc("/api/queue", app.GetQueue).Methods("GET")
 	r.HandleFunc("/api/history", app.GetHistory).Methods("GET")
+
+	// Downloads
+	r.HandleFunc("/api/download/{id}/video", app.VideoDownload).Methods("GET", "HEAD")
 
 	// Metrics
 	r.HandleFunc("/api/logz", app.Log).Methods("GET", "HEAD")
