@@ -126,7 +126,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/history", app.GetHistory).Methods("GET")
 
 	// Metrics
-	r.HandleFunc("/api/logz", app.Log).Methods("GET")
+	r.HandleFunc("/api/logz", app.Log).Methods("GET", "HEAD")
 	r.HandleFunc("/api/stats", app.GetStats).Methods("GET")
 
 	// Users

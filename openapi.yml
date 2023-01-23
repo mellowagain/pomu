@@ -280,6 +280,17 @@ paths:
         "401":
           description: Not logged in
   /user/{provider}/{id}:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
     get:
       operationId: identity
       description: Get identity of a specific user
