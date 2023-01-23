@@ -129,8 +129,9 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/logz", app.Log).Methods("GET")
 	r.HandleFunc("/api/stats", app.GetStats).Methods("GET")
 
-	// OAuth
-	r.HandleFunc("/api/user", app.identifySelf).Methods(http.MethodGet)
+	// Users
+	r.HandleFunc("/api/user", app.IdentitySelf).Methods("GET")
+	r.HandleFunc("/api/user/{provider}/{id}", app.Identity).Methods("GET")
 
 	// Discord OAuth
 	r.HandleFunc("/oauth/discord", app.DiscordOAuthInitiator).Methods("GET")
@@ -270,15 +271,4 @@ func apiOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	SerializeJson(w, response)
-}
-
-func (app *Application) identifySelf(w http.ResponseWriter, r *http.Request) {
-	user, err := app.ResolveUserFromRequest(r)
-
-	if err != nil || user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	SerializeJson(w, user)
 }

@@ -4,8 +4,8 @@
         Header,
         HeaderAction,
         HeaderGlobalAction,
-        HeaderNavItem,
-        HeaderPanelLink,
+        HeaderNavItem, HeaderPanelDivider,
+        HeaderPanelLink, HeaderPanelLinks,
         HeaderUtilities,
         ImageLoader, Modal,
         SkipToContent,
@@ -37,13 +37,17 @@
         console.debug(`location: ${document.location}, state: ${JSON.stringify(event.state)}`);
     }
 
+    // https://stackoverflow.com/a/1026087/11494565
+    function capitalize(input: string): string {
+        return input[0].toUpperCase() + input.slice(1);
+    }
+
     let loginModalOpen = false;
 </script>
 
 <div>
     <Header
         company="Pomu.app"
-        platformName="Dev"
         on:click={(_) => currentPage.update((_) => Page.Video)}
     >
         <svelte:fragment slot="skip-to-content">
@@ -67,7 +71,13 @@
             {#await user then user}
                 <HeaderAction icon={NavAvatar}>
                     <ImageLoader src={user.avatar} />
-                    <HeaderPanelLink>{user.name}</HeaderPanelLink>
+
+                    <HeaderPanelLinks>
+                        <HeaderPanelLink>{user.name}</HeaderPanelLink>
+
+                        <HeaderPanelDivider>{capitalize(user.provider)} auth</HeaderPanelDivider>
+                        <HeaderPanelLink>{user.id}</HeaderPanelLink>
+                    </HeaderPanelLinks>
                 </HeaderAction>
             {:catch e}
                 <HeaderNavItem on:click={() => (loginModalOpen = true)} text="Login" />

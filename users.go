@@ -2,6 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"github.com/gorilla/mux"
+	"log"
+	"net/http"
+	"strings"
 
 	"github.com/getsentry/sentry-go"
 )
@@ -16,6 +20,54 @@ type User struct {
 	Name     string `json:"name"`
 	Avatar   string `json:"avatar"`
 	Provider string `json:"provider"`
+}
+
+func (app *Application) IdentitySelf(w http.ResponseWriter, r *http.Request) {
+	user, err := app.ResolveUserFromRequest(r)
+
+	if err != nil || user == nil {
+		http.Error(w, "please login first", http.StatusUnauthorized)
+		return
+	}
+
+	SerializeJson(w, user)
+}
+
+func (app *Application) Identity(w http.ResponseWriter, r *http.Request) {
+	variables := mux.Vars(r)
+	requestedProvider := strings.ToLower(variables["provider"])
+	id := strings.ToLower(variables["id"])
+
+	if len(strings.Trim(requestedProvider, " ")) == 0 || len(strings.Trim(id, " ")) == 0 {
+		http.Error(w, "provider or id empty", http.StatusBadRequest)
+		return
+	}
+
+	var provider string
+
+	switch requestedProvider {
+	case "google":
+		provider = ProviderGoogle
+		break
+	case "discord":
+		provider = ProviderDiscord
+		break
+	default:
+		http.Error(w, "provider not found", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("checking %s provid %s\n", id, requestedProvider)
+
+	user, err := GetUser(id, provider, app.db)
+
+	if err != nil || user == nil {
+		log.Printf("err: %s, user %v", err, user)
+		http.Error(w, "requested user not found", http.StatusNotFound)
+		return
+	}
+
+	SerializeJson(w, user)
 }
 
 // ValidateOrCreateUser gets the user based on ID and provider and if they do not exist, registers them. Returns redirect URL
