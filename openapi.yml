@@ -43,7 +43,7 @@ components:
           description: Video ID
         submitters:
           type: array
-          description: List of user IDs which have submitted this video to the queue
+          description: "List of user IDs which have submitted this video to the queue (Format: Provider/UserID)"
           items:
             type: string
         scheduledStart:
@@ -76,6 +76,29 @@ components:
           type: integer
           format: int32
           description: Length of livestream in seconds
+    user:
+      type: object
+      required:
+        - id
+        - name
+        - avatar
+        - provider
+      properties:
+        id:
+          type: string
+          description: OAuth provider User ID
+        name:
+          type: string
+          description: Username (or First Name)
+        avatar:
+          type: string
+          format: url
+          description: URL to avatar
+        provider:
+          type: string
+          enum:
+            - google
+            - discord
 
 paths:
   /:
@@ -170,6 +193,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/video"
+        "401":
+          description: Not logged in
   /queue:
     get:
       operationId: GetQueue
@@ -241,6 +266,30 @@ paths:
               required: true
               schema:
                 type: boolean
+  /user:
+    get:
+      operationId: identitySelf
+      description: Get full identity for the currently logged in user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/user"
+        "401":
+          description: Not logged in
+  /user/{provider}/{id}:
+    get:
+      operationId: identity
+      description: Get identity of a specific user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/user"
   /logz:
     get:
       operationId: Log

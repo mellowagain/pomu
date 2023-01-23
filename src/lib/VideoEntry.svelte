@@ -8,7 +8,7 @@
         ListItem,
         Modal,
         OutboundLink,
-        Row,
+        Row, SkeletonText,
         Tile,
         TooltipIcon,
         UnorderedList,
@@ -25,6 +25,7 @@
     import VideoCountdown from "./VideoCountdown.svelte";
     import { humanizeFileSize } from "./video";
     import VideoLog from "./VideoLog.svelte";
+    import type {User} from "./api";
 
     export let info: VideoInfo;
 
@@ -41,6 +42,51 @@
         if (result.status == 404) throw 404;
         return;
     })();
+
+    async function submittersToUsers(submitters: string[]): Promise<User[]> {
+        let results: User[] = [];
+
+        for (let submitter of submitters) {
+            if (submitter == "pomu.app") {
+                results.push({
+                    avatar: "pomu.app",
+                    id: "im pomu",
+                    name: "pomu.app",
+                    provider: "self"
+                })
+                continue;
+            }
+
+            let data = submitter.split("/");
+
+            if (data.length == 1) {
+                // this is a legacy submitters list
+                results.push({
+                    avatar: "",
+                    id: data[0],
+                    name: data[0],
+                    provider: "google"
+                });
+            } else {
+                let provider = data[0];
+                let id = data[1];
+
+                let user = await fetch(`/api/user/${provider}/${id}`)
+                    .then(res => res.json())
+                    .then((user: User) => user)
+                    .catch(_ => <User>{
+                        id: id,
+                        avatar: "",
+                        name: `${id} (using ${provider})`,
+                        provider: provider,
+                    });
+
+                results.push(user);
+            }
+        }
+
+        return results;
+    }
 
     let submittersModal = false;
 </script>
@@ -125,30 +171,33 @@
     passiveModal
     modalHeading={"Submitted by"}
 >
-    {#if info.submitters.length !== 1 || info.submitters[0] !== "pomu.app"}
-        <InlineNotification
-            lowContrast
-            hideCloseButton
-            kind="info"
-            subtitle="To protect user privacy, only user IDs are displayed"
-        />
+    {#if submittersModal}
+        {#await submittersToUsers(info.submitters)}
+            <SkeletonText paragraph width="50%" />
+        {:then users}
+            <UnorderedList>
+                {#each users as user}
+                    {#if user.provider === "self"}
+                        <ListItem>
+                            Automatically added to queue by pomu.app.
+                            <OutboundLink href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API">
+                                Learn more
+                            </OutboundLink>
+                        </ListItem>
+                    {:else}
+                        <ListItem>{user.name}</ListItem>
+                    {/if}
+                {/each}
+            </UnorderedList>
+        {:catch error}
+            <InlineNotification
+                lowContrast
+                hideCloseButton
+                kind="error"
+                subtitle="Failed to load submitters"
+            />
+        {/await}
     {/if}
-
-    <UnorderedList>
-        {#each info.submitters as submitter}
-            {#if submitter === "pomu.app"}
-                <ListItem>
-                    Automatically added to queue by pomu.app.
-                    <OutboundLink
-                        href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API"
-                        >Learn more</OutboundLink
-                    >
-                </ListItem>
-            {:else}
-                <ListItem>{submitter}</ListItem>
-            {/if}
-        {/each}
-    </UnorderedList>
 </Modal>
 
 <style>
