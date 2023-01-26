@@ -150,6 +150,7 @@
                             <Button
                                 icon={CloudDownload}
                                 href={info.downloadUrl}
+                                download
                             >
                                 Download ({humanFileSize})
                             </Button>

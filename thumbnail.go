@@ -46,7 +46,7 @@ func SaveThumbnail(id string, url string) (string, error) {
 
 	defer response.Body.Close()
 
-	if err := s3Client.Upload(fmt.Sprintf("%s.jpg", id), response.Body); err != nil {
+	if err := s3Client.Upload(fmt.Sprintf("%s.jpg", id), response.Body, "image/jpeg"); err != nil {
 		log.Println("s3 thumbnail upload failed:", err)
 		return url, err
 	}

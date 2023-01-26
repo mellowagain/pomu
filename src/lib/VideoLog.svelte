@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, CodeSnippet, Modal } from "carbon-components-svelte";
+    import {Button, CodeSnippet, InlineNotification, Modal, NotificationActionButton} from "carbon-components-svelte";
     import { Report } from "carbon-icons-svelte";
 
     import { onDestroy } from "svelte";
@@ -89,8 +89,16 @@
     {#await log()}
         <CodeSnippet type="multi" expanded skeleton />
     {:then log}
-        <CodeSnippet type="multi" expanded>
+        <CodeSnippet type="multi" expanded hideCopyButton>
             {log}
         </CodeSnippet>
+    {:catch error}
+        <InlineNotification
+            lowContrast
+            hideCloseButton
+            kind="error"
+            title="Failed to load log:"
+            subtitle={error}
+        />
     {/await}
 </Modal>

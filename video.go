@@ -231,7 +231,7 @@ func record(request VideoRequest) (size int64, err error) {
 
 		go func() {
 			defer func() { finished <- struct{}{} }()
-			err := s3.Upload(fmt.Sprintf("%s.mp4", id), reader)
+			err := s3.Upload(fmt.Sprintf("%s.mp4", id), reader, "video/mp4")
 			if err != nil {
 				log.Println(id, "s3.Upload2():", err)
 				sentry.CaptureException(err)
@@ -277,7 +277,7 @@ func uploadLog(s3 *s3.Client, id string) {
 		lines = lines[3:]
 	}
 
-	err := s3.Upload(fmt.Sprintf("%s.log", id), strings.NewReader(strings.Join(lines, "\n")))
+	err := s3.Upload(fmt.Sprintf("%s.log", id), strings.NewReader(strings.Join(lines, "\n")), "text/plain")
 	if err != nil {
 		log.Println(id, "uploadLog: s3.Upload2():", err)
 		sentry.CaptureException(err)

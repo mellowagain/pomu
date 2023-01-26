@@ -37,11 +37,17 @@ func New(bucket string) (*Client, error) {
 	return &Client{bucket: bucket, s3: client, uploader: uploader}, nil
 }
 
-func (client *Client) Upload(path string, reader io.Reader) error {
+func (client *Client) Upload(path string, reader io.Reader, contentType string) error {
+	if len(contentType) <= 0 {
+		contentType = "binary/octet-stream"
+	}
+
 	_, err := client.uploader.Upload(&s3manager.UploadInput{
-		Body:   reader,
-		Bucket: aws.String(client.bucket),
-		Key:    aws.String(path),
+		Body:               reader,
+		Bucket:             aws.String(client.bucket),
+		Key:                aws.String(path),
+		ContentType:        aws.String(contentType),
+		ContentDisposition: aws.String("inline"),
 	}, func(u *s3manager.Uploader) {
 		u.LeavePartsOnError = true
 	})
