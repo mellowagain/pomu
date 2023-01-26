@@ -124,6 +124,7 @@ func setupServer(address string, app *Application) {
 	}).Methods("GET")
 
 	// Videos
+	r.HandleFunc("/api/validate", app.ValidateLivestream).Methods("GET")
 	r.HandleFunc("/api/qualities", PeekForQualities).Methods("GET")
 	r.HandleFunc("/api/submit", app.SubmitVideo).Methods("POST")
 	r.HandleFunc("/api/queue", app.GetQueue).Methods("GET")

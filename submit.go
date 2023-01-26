@@ -54,6 +54,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	videoId := qualities.ParseVideoID(request.VideoUrl)
+
 	videoMetadata, err := GetVideoMetadataWithToken(videoId)
 
 	if err != nil {
@@ -70,6 +71,19 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 	if IsLivestreamEnded(videoMetadata) {
 		http.Error(w, "can only archive livestreams in the future or currently running (try youtube-dl)", http.StatusBadRequest)
 		log.Println("Ignoring submission", videoId, " as it has ended")
+		return
+	}
+
+	valid, err := CheckChannelAgainstHolodex(videoMetadata.Snippet.ChannelId)
+
+	if err != nil {
+		sentry.CaptureException(err)
+		http.Error(w, "failed to check channel against holodex", http.StatusInternalServerError)
+		return
+	}
+
+	if !valid {
+		http.Error(w, "only livestreams by holodex listed vtubers are allowed", http.StatusBadRequest)
 		return
 	}
 
