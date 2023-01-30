@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"github.com/gorilla/mux"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 

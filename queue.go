@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/getsentry/sentry-go"

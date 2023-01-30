@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/youtube/v3"
-	"log"
 	"net/http"
 	"os"
 	"pomu/s3"

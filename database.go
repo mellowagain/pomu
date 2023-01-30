@@ -2,30 +2,22 @@ package main
 
 import (
 	"database/sql"
-	"github.com/getsentry/sentry-go"
 	_ "github.com/lib/pq"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
 func Connect() *sql.DB {
-	url := os.Getenv("DATABASE_URL")
-
-	db, err := sql.Open("postgres", url)
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 
 	if err != nil {
-		sentry.CaptureException(err)
-		log.Fatalf("Failed to open database: %s", err)
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to connect to database")
 	}
 
-	err = db.Ping()
-
-	if err != nil {
-		sentry.CaptureException(err)
-		log.Fatalf("Failed to ping database: %s", err)
+	if err = db.Ping(); err != nil {
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to connect to database")
 	}
 
-	log.Println("Successfully connected to database")
-
+	log.Info("successfully connected to database")
 	return db
 }

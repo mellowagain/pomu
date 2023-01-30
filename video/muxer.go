@@ -2,8 +2,8 @@ package video
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 
@@ -30,6 +30,7 @@ func (w *Muxer) Start() error {
 		"-max_muxing_queue_size", "1024",
 		"-bsf:a", "aac_adtstoasc",
 		"-f", "mp4",
+		"-hide_banner",
 		"pipe:1")
 
 	var err error

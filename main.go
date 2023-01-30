@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/rand"
-	"log"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -16,6 +16,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -34,11 +35,11 @@ type Application struct {
 }
 
 func main() {
-	log.SetPrefix("[Pomu] ")
+	initLogging()
 	rand.Seed(uint64(time.Now().UnixNano()))
 
 	if err := godotenv.Load(); err != nil {
-		log.Printf("warning: failed to load .env file: %s\n", err)
+		log.WithFields(log.Fields{"error": err}).Warn("failed to load .env file")
 	}
 
 	setupSentry()
@@ -56,18 +57,18 @@ func main() {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 
 	if err != nil {
-		log.Fatalf("failed to setup database driver: %s", err)
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to setup connect to database")
 	}
 
 	migrator, err := migrate.NewWithDatabaseInstance("file://migrations", "pomu", driver)
 
 	if err != nil {
-		log.Fatalf("failed to initialize migrations: %s", err)
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to initialize migrations")
 	}
 
 	if err := migrator.Up(); err != nil {
 		if err.Error() != "no change" {
-			log.Fatalf("failed to run migrations: %s", err)
+			log.WithFields(log.Fields{"error": err}).Fatal("failed to run migrations")
 		}
 	}
 
@@ -79,10 +80,10 @@ func main() {
 	go app.restartRecording()
 
 	if strings.ToLower(os.Getenv("HOLODEX_ENABLE")) == "true" {
-		log.Println("Holodex auto fetching is enabled")
+		log.Info("holodex auto fetching is enabled")
 
 		if _, err := Scheduler.SingletonMode().Every("1h").StartImmediately().Do(QueueUpcomingStreams, app); err != nil {
-			sentry.CaptureException(err)
+			log.WithFields(log.Fields{"error": err}).Error("failed to schedule task for queuing upcoming holodex streams")
 		}
 	}
 
@@ -153,11 +154,17 @@ func setupSecureCookie() *securecookie.SecureCookie {
 	blockKey, blockKeyErr := hex.DecodeString(os.Getenv("COOKIE_BLOCK_KEY"))
 
 	if hashKeyErr != nil || blockKeyErr != nil {
-		log.Fatalf("Failed to decode hash key (%s) or block key (%s)\n", hashKeyErr, blockKeyErr)
+		log.WithFields(log.Fields{
+			"hash_key_error":  hashKeyErr,
+			"block_key_error": blockKeyErr,
+		}).Fatal("failed to decode hash key or block key")
 	}
 
 	if len(hashKey) < 32 || len(blockKey) < 16 {
-		log.Printf("Hash key (%d) is less than 32 bytes or block key (%d) is less than 16 bytes. Regenerating\n", len(hashKey), len(blockKey))
+		log.WithFields(log.Fields{
+			"hash_key_length":  len(hashKey),
+			"block_key_length": len(blockKey),
+		}).Info("hash key is less than 32 bytes or block key is less than 16 bytes. regenerating.")
 
 		hashKey = securecookie.GenerateRandomKey(32)
 		blockKey = securecookie.GenerateRandomKey(16)
@@ -165,16 +172,14 @@ func setupSecureCookie() *securecookie.SecureCookie {
 		envMap, err := godotenv.Read()
 
 		if err != nil {
-			sentry.CaptureException(err)
-			log.Fatalf("Failed to read .env file: %s\n", err)
+			log.WithFields(log.Fields{"error": err}).Warn("failed to load .env file")
 		}
 
 		envMap["COOKIE_HASH_KEY"] = fmt.Sprintf("%x", hashKey)
 		envMap["COOKIE_BLOCK_KEY"] = fmt.Sprintf("%x", blockKey)
 
 		if err = godotenv.Write(envMap, ".env"); err != nil {
-			sentry.CaptureException(err)
-			log.Fatalf("Failed to write .env file: %s\n", err)
+			log.WithFields(log.Fields{"error": err}).Fatal("failed to write .env file")
 		}
 	}
 
@@ -183,16 +188,16 @@ func setupSecureCookie() *securecookie.SecureCookie {
 
 func setupSentry() {
 	if strings.ToLower(os.Getenv("SENTRY_ENABLE")) != "true" {
-		log.Println("Sentry error reporting is disabled")
+		log.Info("sentry error reporting is disabled")
 		return
 	} else {
-		log.Println("Sentry error reporting is enabled")
+		log.Info("sentry error reporting is enabled")
 	}
 
 	sampleRate, err := strconv.ParseFloat(os.Getenv("SENTRY_SAMPLE_RATE"), 64)
 
 	if err != nil {
-		log.Fatalf("Failed to parse SENTRY_SAMPLE_RATE: %s\n", err)
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to parse `SENTRY_SAMPLE_RATE` environment variable")
 	}
 
 	err = sentry.Init(sentry.ClientOptions{
@@ -202,9 +207,19 @@ func setupSentry() {
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to setup sentry: %s\n", err)
-		return
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to setup sentry")
 	}
+
+	levels := []log.Level{log.ErrorLevel, log.FatalLevel, log.PanicLevel}
+	hook := sentrylogrus.NewFromClient(levels, sentry.CurrentHub().Client())
+
+	defer hook.Flush(5 * time.Second)
+	log.AddHook(hook)
+
+	log.RegisterExitHandler(func() {
+		// if log.Fatal gets called, exit(1) will be executed which means no `defer`s (defined above) run, so flush manually
+		hook.Flush(5 * time.Second)
+	})
 }
 
 func checkYouTubeDl() {
@@ -215,10 +230,13 @@ func checkYouTubeDl() {
 	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to find youtube-dl (%s): %s\n", err, output)
+		log.WithFields(log.Fields{
+			"error":  err,
+			"output": output,
+		}).Fatal("failed to find youtube-dl")
 	}
 
-	log.Printf("Found youtube-dl version %s\n", strings.TrimSpace(output.String()))
+	log.WithFields(log.Fields{"version": strings.TrimSpace(output.String())}).Info("found youtube-dl")
 }
 
 func checkFfmpeg() {
@@ -228,29 +246,44 @@ func checkFfmpeg() {
 	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to find ffmpeg: %s\n", err)
+		log.WithFields(log.Fields{"error": err}).Fatal("failed to find ffmpeg")
 	}
 
-	before, _, _ := strings.Cut(output.String(), "\n")
-	log.Println("Found", before)
+	firstLine, _, _ := strings.Cut(output.String(), "\n")
+	nonTrimmedVersion, _, _ := strings.Cut(firstLine, " Copyright (c) 2000-")
+	version := nonTrimmedVersion[15:]
+
+	log.WithFields(log.Fields{"version": version}).Info("found ffmpeg")
+}
+
+func initLogging() {
+	log.SetFormatter(&log.TextFormatter{
+		DisableLevelTruncation:    true,
+		PadLevelText:              true,
+		EnvironmentOverrideColors: true,
+		FullTimestamp:             true,
+		QuoteEmptyFields:          true,
+	})
 }
 
 func (app *Application) restartRecording() {
 	queue, err := app.getQueue()
 
 	if err != nil {
-		log.Println("Failed to get queue")
-		sentry.CaptureException(err)
+		log.WithFields(log.Fields{"error": err}).Error("failed to get queue from database")
 		return
 	}
 
-	log.Println("Found", len(queue), "videos to restart")
+	log.WithFields(log.Fields{"amount": len(queue)}).Info("found pending videos to restart")
 
 	for _, video := range queue {
 		videoMetadata, err := GetVideoMetadata(video.Id)
+
 		if err != nil {
-			sentry.CaptureException(err)
-			log.Println("restart:", video.Id, "Unable to get video metadata")
+			log.WithFields(log.Fields{
+				"video_id": video.Id,
+				"error":    err,
+			}).Error("unable to get video meta data from youtube")
 			continue
 		}
 

@@ -3,8 +3,8 @@ package video
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"pomu/hls"
