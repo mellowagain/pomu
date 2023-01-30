@@ -42,6 +42,8 @@ RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/yout
 RUN chmod +x /usr/local/bin/youtube-dl
 ENV YOUTUBE_DL="/usr/local/bin/youtube-dl"
 
+WORKDIR /app/
+
 COPY --from=frontend-builder /usr/src/pomu/dist /app/dist
 COPY --from=backend-builder /usr/src/pomu/migrations /app/migrations
 COPY --from=backend-builder /usr/src/pomu/pomu /app/
