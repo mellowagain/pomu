@@ -218,3 +218,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 __debug_bin
+
+# https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions

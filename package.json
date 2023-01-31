@@ -24,5 +24,6 @@
   "dependencies": {
     "dayjs": "^1.11.4",
     "svelte-countdown": "git+https://github.com/emily33901/svelte-countdown.git"
-  }
+  },
+  "packageManager": "yarn@3.3.1"
 }
