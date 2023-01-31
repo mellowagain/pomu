@@ -21,8 +21,8 @@
     let getLog = async (method: string) => {
         let result;
 
-        if (downloadUrl) {
-            result = await fetch(downloadUrl.replace("mp4", "log"), {
+        if (downloadUrl != null) {
+            result = await fetch(downloadUrl.replace("/video", "/ffmpeg"), {
                 method,
             });
         } else {
