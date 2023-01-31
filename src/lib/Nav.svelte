@@ -104,7 +104,7 @@
 <Modal passiveModal bind:open={loginModalOpen} size="xs" modalHeading="Login using" on:open on:close>
     <ButtonSet stacked>
         <Button kind="tertiary" icon={LogoDiscord} href="/oauth/discord">Discord</Button>
-        <Button kind="tertiary" icon={LogoTwitter} href="/oauth/twitter" disable>Twitter</Button>
+        <Button kind="tertiary" icon={LogoTwitter} disabled>Twitter</Button>
         <Button kind="tertiary" icon={LogoYoutube} disabled>YouTube</Button>
     </ButtonSet>
 </Modal>
