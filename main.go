@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/rand"
 	"net/http"
@@ -99,53 +100,56 @@ func setupServer(address string, app *Application) {
 	})
 	r := mux.NewRouter().StrictSlash(true)
 
+	// Prometheus middleware
+	middleware := NewPrometheusMiddleware(prometheus.DefaultRegisterer, nil)
+
 	// == FRONTEND ==
 	serveIndex := func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./dist/index.html")
 	}
 
-	r.HandleFunc("/", serveIndex).Methods("GET")
-	r.HandleFunc("/queue", serveIndex).Methods("GET")
-	r.HandleFunc("/history", serveIndex).Methods("GET")
+	r.HandleFunc("/", middleware.WrapHandler("/", http.HandlerFunc(serveIndex))).Methods("GET")
+	r.HandleFunc("/queue", middleware.WrapHandler("/queue", http.HandlerFunc(serveIndex))).Methods("GET")
+	r.HandleFunc("/history", middleware.WrapHandler("/history", http.HandlerFunc(serveIndex))).Methods("GET")
 
 	// Static resources
 	fileServer := http.FileServer(http.Dir("./dist/assets"))
 	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", fileServer))
 
 	// Prometheus
-	r.Handle("/metrics", promhttp.Handler())
+	r.Handle("/metrics", middleware.WrapHandler("/metrics", promhttp.Handler()))
 
 	// == API ==
 
-	r.HandleFunc("/api", apiOverview).Methods("GET")
-	r.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/api", middleware.WrapHandler("/api", http.HandlerFunc(apiOverview))).Methods("GET")
+	r.HandleFunc("/healthz", middleware.WrapHandler("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := fmt.Fprintln(w, "healthy"); err != nil {
 			http.Error(w, "unhealthy", http.StatusInternalServerError)
 		}
-	}).Methods("GET")
+	}))).Methods("GET")
 
 	// Videos
-	r.HandleFunc("/api/validate", app.ValidateLivestream).Methods("GET")
-	r.HandleFunc("/api/qualities", PeekForQualities).Methods("GET")
-	r.HandleFunc("/api/submit", app.SubmitVideo).Methods("POST")
-	r.HandleFunc("/api/queue", app.GetQueue).Methods("GET")
-	r.HandleFunc("/api/history", app.GetHistory).Methods("GET")
+	r.HandleFunc("/api/validate", middleware.WrapHandler("/api/validate", http.HandlerFunc(app.ValidateLivestream))).Methods("GET")
+	r.HandleFunc("/api/qualities", middleware.WrapHandler("/api/qualities", http.HandlerFunc(PeekForQualities))).Methods("GET")
+	r.HandleFunc("/api/submit", middleware.WrapHandler("/api/submit", http.HandlerFunc(app.SubmitVideo))).Methods("POST")
+	r.HandleFunc("/api/queue", middleware.WrapHandler("/api/queue", http.HandlerFunc(app.GetQueue))).Methods("GET")
+	r.HandleFunc("/api/history", middleware.WrapHandler("/api/history", http.HandlerFunc(app.GetHistory))).Methods("GET")
 
 	// Downloads
-	r.HandleFunc("/api/download/{id}/video", app.VideoDownload).Methods("GET", "HEAD")
+	r.HandleFunc("/api/download/{id}/{type}", middleware.WrapHandler("/api/download/{id}/{type}", http.HandlerFunc(app.VideoDownload))).Methods("GET", "HEAD")
 
 	// Metrics
-	r.HandleFunc("/api/logz", app.Log).Methods("GET", "HEAD")
-	r.HandleFunc("/api/stats", app.GetStats).Methods("GET")
+	r.HandleFunc("/api/logz", middleware.WrapHandler("/api/logz", http.HandlerFunc(app.Log))).Methods("GET", "HEAD")
+	r.HandleFunc("/api/stats", middleware.WrapHandler("/api/stats", http.HandlerFunc(app.GetStats))).Methods("GET")
 
 	// Users
-	r.HandleFunc("/logout", app.Logout).Methods("POST")
-	r.HandleFunc("/api/user", app.IdentitySelf).Methods("GET")
-	r.HandleFunc("/api/user/{provider}/{id}", app.Identity).Methods("GET")
+	r.HandleFunc("/logout", middleware.WrapHandler("/logout", http.HandlerFunc(app.Logout))).Methods("POST")
+	r.HandleFunc("/api/user", middleware.WrapHandler("/api/user", http.HandlerFunc(app.IdentitySelf))).Methods("GET")
+	r.HandleFunc("/api/user/{provider}/{id}", middleware.WrapHandler("/api/user/{provider}/{id}", http.HandlerFunc(app.Identity))).Methods("GET")
 
 	// Discord OAuth
-	r.HandleFunc("/oauth/discord", app.DiscordOAuthInitiator).Methods("GET")
-	r.HandleFunc("/oauth/discord/redirect", app.DiscordOAuthRedirect).Methods("GET")
+	r.HandleFunc("/oauth/discord", middleware.WrapHandler("/oauth/discord", http.HandlerFunc(app.DiscordOAuthInitiator))).Methods("GET")
+	r.HandleFunc("/oauth/discord/redirect", middleware.WrapHandler("/oauth/discord/redirect", http.HandlerFunc(app.DiscordOAuthRedirect))).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(address, c.Handler(r)))
 }
