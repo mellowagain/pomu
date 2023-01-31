@@ -139,6 +139,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/stats", app.GetStats).Methods("GET")
 
 	// Users
+	r.HandleFunc("/logout", app.Logout).Methods("POST")
 	r.HandleFunc("/api/user", app.IdentitySelf).Methods("GET")
 	r.HandleFunc("/api/user/{provider}/{id}", app.Identity).Methods("GET")
 

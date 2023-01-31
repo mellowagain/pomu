@@ -42,6 +42,15 @@
         return input[0].toUpperCase() + input.slice(1);
     }
 
+    function logout() {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/logout";
+
+        document.body.append(form);
+        form.submit();
+    }
+
     let loginModalOpen = false;
 </script>
 
@@ -77,6 +86,12 @@
 
                         <HeaderPanelDivider>{capitalize(user.provider)} auth</HeaderPanelDivider>
                         <HeaderPanelLink>{user.id}</HeaderPanelLink>
+
+                        <HeaderPanelDivider>Danger zone</HeaderPanelDivider>
+                        <HeaderPanelLink on:click={logout}>Logout</HeaderPanelLink>
+                        <HeaderPanelLink href="mailto:mari@pomu.app,emily@pomu.app?subject=Account%20Deletion%20Request">Delete account</HeaderPanelLink>
+                    </HeaderPanelLinks>
+                    <HeaderPanelLinks>
                     </HeaderPanelLinks>
                 </HeaderAction>
             {:catch e}

@@ -70,6 +70,17 @@ func (app *Application) Identity(w http.ResponseWriter, r *http.Request) {
 	SerializeJson(w, user)
 }
 
+func (app *Application) Logout(w http.ResponseWriter, r *http.Request) {
+	session, err := app.ResolveSessionFromRequest(r)
+
+	if err == nil {
+		_ = DeleteSession(session, app.db)
+	}
+
+	w.Header().Set("Set-Cookie", "pomu=deleted; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT")
+	http.Redirect(w, r, "/?successLogout", http.StatusTemporaryRedirect)
+}
+
 // ValidateOrCreateUser gets the user based on ID and provider and if they do not exist, registers them. Returns redirect URL
 func ValidateOrCreateUser(id string, name string, avatarUrl string, provider string, db *sql.DB) (string, error) {
 	user, err := GetUser(id, provider, db)

@@ -30,6 +30,15 @@
         });
     }
 
+    if (params.has("successLogout")) {
+        showNotification({
+            title: "Successfully logged out",
+            kind: "success",
+            timeout: 5000,
+            description: "",
+        });
+    }
+
     let notifs: [number, StoredNotification][];
     notifications.subscribe((n) => {
         notifs = [...n.entries()];
