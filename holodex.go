@@ -145,6 +145,7 @@ func QueueUpcomingStreams(app *Application) {
 				continue
 			}
 
+			go app.UpsertVideo(video)
 			log.Printf("Automatically scheduled %s (title: \"%s\") for %s\n", video.Id, video.Title, startTime.Format(time.RFC1123))
 		}
 	}

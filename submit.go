@@ -211,6 +211,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to schedule video recording", http.StatusInternalServerError)
 			return
 		}
+
+		go app.UpsertVideo(video)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -239,7 +241,7 @@ func (app *Application) scheduleVideo(
 	request VideoRequest) error {
 
 	if IsLivestreamStarted(videoMetadata) {
-		if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, app.db, request); err != nil {
+		if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).Tag(videoId).StartImmediately().Do(StartRecording, app, request); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
@@ -250,7 +252,7 @@ func (app *Application) scheduleVideo(
 		if err != nil {
 			return err
 		}
-		if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, app.db, request); err != nil {
+		if _, err := Scheduler.SingletonMode().Every("10s").LimitRunsTo(1).StartAt(startTime).Tag(videoId).Do(StartRecording, app, request); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}

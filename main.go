@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
+	"github.com/meilisearch/meilisearch-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/rand"
@@ -33,6 +34,9 @@ import (
 type Application struct {
 	db           *sql.DB
 	secureCookie *securecookie.SecureCookie
+
+	searchClient *meilisearch.Client
+	search       *meilisearch.Index
 }
 
 func main() {
@@ -79,6 +83,7 @@ func main() {
 	}
 
 	go app.restartRecording()
+	go app.SetupSearch()
 
 	if strings.ToLower(os.Getenv("HOLODEX_ENABLE")) == "true" {
 		log.Info("holodex auto fetching is enabled")
@@ -134,6 +139,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/submit", middleware.WrapHandler("/api/submit", http.HandlerFunc(app.SubmitVideo))).Methods("POST")
 	r.HandleFunc("/api/queue", middleware.WrapHandler("/api/queue", http.HandlerFunc(app.GetQueue))).Methods("GET")
 	r.HandleFunc("/api/history", middleware.WrapHandler("/api/history", http.HandlerFunc(app.GetHistory))).Methods("GET")
+	r.HandleFunc("/api/search", middleware.WrapHandler("/api/search", http.HandlerFunc(SearchMetadata))).Methods("GET")
 
 	// Downloads
 	r.HandleFunc("/api/download/{id}/{type}", middleware.WrapHandler("/api/download/{id}/{type}", http.HandlerFunc(app.VideoDownload))).Methods("GET", "HEAD")

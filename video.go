@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -123,10 +124,11 @@ func videoLengthFromLog(id string) time.Duration {
 	return duration
 }
 
-func recordFinished(db *sql.DB, id string, size int64) error {
+func (app *Application) recordFinished(db *sql.DB, id string, size int64) error {
 	tx, err := db.Begin()
 
 	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("failed to begin transaction")
 		return err
 	}
 
@@ -134,21 +136,48 @@ func recordFinished(db *sql.DB, id string, size int64) error {
 
 	length := videoLengthFromLog(id)
 
-	log.Println("Finishing video", id, "with size", size, "and length", length)
+	log.WithFields(log.Fields{
+		"id":     id,
+		"size":   size,
+		"length": length,
+	}).Info("finishing video")
 
-	_, err = tx.Exec(
-		"update videos set finished = true, file_size = $1, video_length = $2 where id = $3", size, int(length.Seconds()), id)
+	var video Video
+
+	statement, err := tx.Prepare("update videos set finished = true, file_size = $1, video_length = $2 where id = $3 returning *")
 
 	if err != nil {
-		log.Println("Failed to update video as finished:", err)
-		sentry.CaptureException(err)
+		log.WithFields(log.Fields{"error": err}).Error("failed to prepare statement")
 		return err
 	}
 
-	if tx.Commit() != nil {
+	row := statement.QueryRow(size, int(length.Seconds()), id)
+
+	if err := row.Err(); err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("failed to execute statement")
 		return err
 	}
 
+	if err = row.Scan(&video.Id,
+		pq.Array(&video.Submitters),
+		&video.Start,
+		&video.Finished,
+		&video.Title,
+		&video.ChannelName,
+		&video.ChannelId,
+		&video.Thumbnail,
+		&video.FileSize,
+		&video.Length); err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("failed to serialize row into video")
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("failed to commit transaction")
+		return err
+	}
+
+	go app.UpsertVideo(video)
 	return nil
 }
 
@@ -285,7 +314,7 @@ func uploadLog(s3 *s3.Client, id string) {
 	}
 }
 
-func StartRecording(db *sql.DB, request VideoRequest) {
+func StartRecording(app *Application, request VideoRequest) {
 	log.Println("Waiting for", request.VideoUrl)
 	id, err := request.Id()
 	if err != nil {
@@ -300,7 +329,7 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 				return
 			}
 
-			err = recordFinished(db, id, size)
+			err = app.recordFinished(app.db, id, size)
 			if err != nil {
 				log.Println("Failed record finish for", id, ":", err)
 			}
@@ -309,7 +338,7 @@ func StartRecording(db *sql.DB, request VideoRequest) {
 			log.Println("Livestream has not started yet")
 		} else if err != nil {
 			log.Println("Failed checking livestream started:", err)
-			err = recordFailed(db, id)
+			err = recordFailed(app.db, id)
 			if err != nil {
 				log.Println("Failed record fail for", id)
 			}
