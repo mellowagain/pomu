@@ -130,6 +130,34 @@ paths:
                   commit:
                     type: string
                     description: Git SHA-1 of commit which is deployed
+  /validate:
+    get:
+      operationId: ValidateLivestream
+      description: Validates if the livestream is allowed to be submitted
+      parameters:
+        - name: url
+          in: query
+          description: YouTube url of livestream which should be validated against submission guidelines
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - valid
+                  - channelId
+                properties:
+                  valid:
+                    type: boolean
+                    description: Whenever this stream follows configured submission guidelines and can be submitted
+                  channelId:
+                    type: string
+                    description: Channel ID of the submitted video
   /qualities:
     get:
       operationId: PeekForQualities
@@ -137,7 +165,7 @@ paths:
       parameters:
         - name: url
           in: query
-          description: YouTube url of live stream for which qualities should be peeked
+          description: YouTube url of livestream for which qualities should be peeked
           required: true
           schema:
             type: string
@@ -266,6 +294,32 @@ paths:
               required: true
               schema:
                 type: boolean
+  /search:
+    get:
+      operationId: SearchMetadata
+      description: |
+        Get Meilisearch metadata to search for videos.
+        If search is enabled, the returned metadata can be used to search for archived streams in the index `pomu`.
+        The returned `apiKey`, if provided, is guaranteed to be view and search only and can not modify the index.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                properties:
+                  enabled:
+                    type: boolean
+                    description: Whenever search is enabled on this instance
+                  url:
+                    type: string
+                    description: Meilisearch API base url, if search is enabled
+                  apiKey:
+                    type: string
+                    description: Meilisearch API key, if search is enabled
   /user:
     get:
       operationId: identitySelf
@@ -301,6 +355,57 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/user"
+  /download/{videoId}/{type}:
+    parameters:
+      - name: videoId
+        in: path
+        required: true
+        schema:
+          type: string
+          description: Video ID of the video which you want to download `type` from
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+          description: What you want to download
+          enum:
+            - video
+            - ffmpeg
+            - thumbnail
+      - name: User-Agent
+        in: header
+        required: true
+        schema:
+          type: string
+          description: |
+            A identify-able user agent string is **required** to use the pomu download endpoint.
+            Including a identify-able user agent allows us to contact you in case of abuse
+            or usage outside of our fair-use policy.
+
+            Failing to include such a user agent **will** result in request blocking (401 Bad Request)
+            and may also lead to an automated IP(-range) ban, if the request block is being circumvented.
+        example: "pomu (https://github.com/mellowagain/pomu)"
+        allowReserved: true
+    get:
+      operationId: Download
+      description: Downloads the request `type` of video `videoId`
+      responses:
+        "307":
+          description: OK - Follow redirect (response header `Location`) to find the download URL
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: | 
+            # Bad Request
+            One of these two things occurred:
+            - Video or ffmpeg log download has been requested but the video has not yet finished archiving.
+            - A bad user agent has been sent with the request. Please see the `User-Agent` header (defined above or to the right)
+        "404":
+          description: Not Found
   /logz:
     get:
       operationId: Log

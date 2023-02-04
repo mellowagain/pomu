@@ -19,10 +19,10 @@ servers:
     description: Development CDN
 
 x-topics:
-  - title: Notice
+  - title: Deprecation Notice
     content: |
-      This API documentation is for the `pomu.app` CDN server, which only host files.
-      If you wish to access meta data (queue, history), [please see the API documentation for our API](https://docs.pomu.app).
+      The direct CDN API has been deprecated in favour of the download routes on the main API.
+      Please see the [main API documentation](https://docs.pomu.app) for download routes.
 
 components:
   parameters:
@@ -38,7 +38,10 @@ paths:
   /{videoID}.jpg:
     get:
       operationId: thumbnail
-      description: Returns maximum resolution thumbnail for archive
+      description: |
+        Returns maximum resolution thumbnail for archive.
+        This endpoint is deprecated: consider using `GET /api/download/{videoId}/thumbnail`.
+      deprecated: true
       parameters:
         - $ref: "#/components/parameters/videoID"
       responses:
@@ -52,7 +55,10 @@ paths:
   /{videoID}.log:
     get:
       operationId: log
-      description: Returns ffmpeg log for archive
+      description: |
+        Returns ffmpeg log for archive.
+        This endpoint is deprecated: consider using `GET /api/download/{videoId}/ffmpeg`.
+      deprecated: true
       parameters:
         - $ref: "#/components/parameters/videoID"
       responses:
@@ -66,7 +72,10 @@ paths:
   /{videoID}.mp4:
     get:
       operationId: video
-      description: Returns video file for archive
+      description: |
+        Returns video file for archive.
+        This endpoint is deprecated: consider using `GET /api/download/{videoId}/video`.
+      deprecated: true
       parameters:
         - $ref: "#/components/parameters/videoID"
       responses:
