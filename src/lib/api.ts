@@ -27,3 +27,13 @@ export async function acceptOnlyOkResponse(response: Response) {
         why: await response.text(),
     } as ApiError;
 }
+
+// https://stackoverflow.com/a/1909508/11494565
+export function delay(fn, ms) {
+    let timer = 0;
+
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(fn.bind(this, ...args), ms || 0);
+    }
+}

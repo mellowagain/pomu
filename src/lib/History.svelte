@@ -7,69 +7,94 @@
         NotificationActionButton,
         Pagination,
         PaginationSkeleton,
-        Row,
-        Toggle
+        Row, Search,
     } from "carbon-components-svelte";
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
-    import type { HistoryResponse } from "./video";
+    import type { HistoryResponse, VideoInfo } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy } from "svelte";
+    import type { SearchMetadata } from "./search";
+    import { delay } from "./api.js";
+    import { MeiliSearch, SearchResponse } from "meilisearch";
 
-    // Search parameters
     let sorting = "desc";
-    let displayUnfinished = false;
     let page = 1;
     let limit = 25;
 
-    let history = requestHistory();
-    let intervalId;
+    let searchValue = "";
+    let lastSearch: SearchResponse<Partial<VideoInfo>> = null;
+    $: offset = (page - 1) * limit;
 
-    function refreshData(invokedByInterval = false) {
-        history = requestHistory();
+    let url;
+    let apiKey;
 
-        // If we manually refresh the data, reschedule the interval, so it doesn't cause double refreshes
-        if (!invokedByInterval) {
-            try {
-                clearInterval(intervalId);
-            } catch {
-                // In case the interval is already cleared, clearInterval will throw an error but that's fine with us so just continue
-            }
-
-            scheduleRefresh();
-        }
-    }
+    let abortController = new AbortController();
 
     async function requestHistory(): Promise<HistoryResponse> {
-        let results = await fetch(`/api/history?page=${page - 1}&limit=${limit}&sort=${sorting}&unfinished=${displayUnfinished}`);
-        let json = await results.json();
+        let results = await fetch(`/api/history?page=${page - 1}&limit=${limit}&sort=${sorting}`, {
+            signal: abortController.signal
+        });
+        let json: VideoInfo[] = await results.json();
 
         return {
             totalItems: +results.headers.get("X-Pomu-Pagination-Total"),
-            videos: new Map(json.map(entry => [entry.id, entry]))
+            videos: json
         };
     }
 
-    function scheduleRefresh() {
-        intervalId = setInterval(() => refreshData(true), 60000);
-    }
+    async function requestMeilisearchData(): Promise<SearchMetadata> {
+        let results = await fetch("/api/search", {
+            signal: abortController.signal
+        });
+        let json: SearchMetadata = await results.json();
 
-    function handleVisibilityChange() {
-        switch (document.visibilityState) {
-            case "visible":
-                refreshData();
-                scheduleRefresh();
-                break;
-            case "hidden":
-                clearInterval(intervalId);
-                break;
+        if (json.enabled) {
+            url = json.url;
+            apiKey = json.apiKey;
         }
+
+        return json;
     }
 
-    onMount(() => scheduleRefresh());
-    onDestroy(() => clearInterval(intervalId));
-</script>
+    async function startSearch(): Promise<SearchResponse<Partial<VideoInfo>>> {
+        // set the lastSearch to null to allow us to display a skeleton
+        lastSearch = null;
 
-<svelte:window on:visibilitychange={handleVisibilityChange}/>
+        let searchClient = new MeiliSearch({
+            host: url,
+            apiKey
+        });
+        let index = searchClient.index("pomu");
+
+        let search: SearchResponse<Partial<VideoInfo>> = await index.search(searchValue, {
+            filter: ["finished = true"],
+            sort: ["scheduledStart:desc"],
+            page: page,
+            offset: offset,
+            hitsPerPage: limit,
+        }, {
+            signal: abortController.signal
+        });
+
+        // fix up download urls (as they are not populated, hence the `Partial` in `Partial<VideoInfo>`
+        search.hits.forEach((part, index, array) => {
+            array[index].downloadUrl = `/api/download/${part.id}/video`;
+        })
+
+        lastSearch = search;
+        return search;
+    }
+
+    // small wrapper function to re-assign `history` and force svelte to re-fetch the data.
+    // this is used by basically every button below
+    function refreshData() {
+        history = requestHistory();
+    }
+
+    onDestroy(() => abortController.abort());
+
+    let history = requestHistory();
+</script>
 
 <Grid>
     <Row>
@@ -77,14 +102,26 @@
             <h1>History</h1>
         </Column>
         <Column></Column>
-        <Column>
-            <div class="toggler">
-                <Toggle
-                    labelText="Display unfinished"
-                    bind:toggled={displayUnfinished}
-                    on:toggle={refreshData}
+        <Column style="display: flex; align-items: flex-end;">
+            {#await requestMeilisearchData()}
+                <Search skeleton />
+            {:then params}
+                {#if params.enabled}
+                    <Search
+                        size="lg"
+                        bind:value={searchValue}
+                        on:keyup={delay(startSearch, 500)}
+                    />
+                {/if}
+            {:catch error}
+                <InlineNotification
+                    lowContrast
+                    hideCloseButton
+                    kind="error"
+                    title="Failed to load search bar:"
+                    subtitle={error}
                 />
-            </div>
+            {/await}
         </Column>
         <Column>
             <Dropdown
@@ -102,68 +139,96 @@
 
 <div class="divider"></div>
 
-{#await history}
-    <PaginationSkeleton />
+{#if searchValue.length === 0}
+    {#await history}
+        <PaginationSkeleton/>
 
-    {#each Array(limit) as _, i}
-        <SkeletonVideoEntry />
-    {/each}
+        {#each Array(limit) as _, i}
+            <SkeletonVideoEntry/>
+        {/each}
 
-    <PaginationSkeleton />
-{:then result}
-    {#if result.videos.size === 0}
+        <PaginationSkeleton/>
+    {:then result}
+        {#if result.videos.size === 0}
+            <InlineNotification
+                lowContrast
+                hideCloseButton
+                kind="info"
+                subtitle="No streams have finished recording"
+            />
+        {:else}
+            <Pagination
+                totalItems={result.totalItems}
+                pageSizes={[25, 50, 75, 100]}
+                bind:pageSize={limit}
+                bind:page
+                on:click:button--previous={refreshData}
+                on:click:button--next={refreshData}
+            />
+
+            {#each result.videos as info (info.id)}
+                <VideoEntry {info}/>
+            {/each}
+
+            <Pagination
+                totalItems={result.totalItems}
+                pageSizes={[25, 50, 75, 100]}
+                bind:pageSize={limit}
+                bind:page
+                on:update={refreshData}
+                on:click:button--previous={refreshData}
+                on:click:button--next={refreshData}
+            />
+        {/if}
+    {:catch error}
         <InlineNotification
             lowContrast
             hideCloseButton
-            kind="info"
-            subtitle="No streams have finished recording"
-            on:close={(e) => {
-                e.preventDefault();
-            }}
-        />
+            kind="error"
+            title="Failed to load history:"
+            subtitle={error}
+        >
+            <svelte:fragment slot="actions">
+                <NotificationActionButton on:click={refreshData}>Retry</NotificationActionButton>
+            </svelte:fragment>
+        </InlineNotification>
+    {/await}
+{:else}
+    {#if lastSearch == null}
+        <PaginationSkeleton />
+
+        {#each Array(limit) as _, i}
+            <SkeletonVideoEntry />
+        {/each}
+
+        <PaginationSkeleton />
     {:else}
         <Pagination
-            totalItems={result.totalItems}
+            totalItems={lastSearch.estimatedTotalHits ?? lastSearch.totalHits}
             pageSizes={[25, 50, 75, 100]}
             bind:pageSize={limit}
             bind:page
-            on:click:button--previous={refreshData}
-            on:click:button--next={refreshData}
+            on:click:button--previous={startSearch}
+            on:click:button--next={startSearch}
         />
 
-        {#each [...result.videos.entries()] as [id, info] (id)}
-            <VideoEntry {info} />
+        {#each lastSearch.hits as info (info.id)}
+            <VideoEntry {info}/>
         {/each}
 
         <Pagination
-            totalItems={result.totalItems}
+            totalItems={lastSearch.estimatedTotalHits ?? lastSearch.totalHits}
             pageSizes={[25, 50, 75, 100]}
             bind:pageSize={limit}
             bind:page
-            on:update={refreshData}
-            on:click:button--previous={refreshData}
-            on:click:button--next={refreshData}
+            on:update={startSearch}
+            on:click:button--previous={startSearch}
+            on:click:button--next={startSearch}
         />
     {/if}
-{:catch error}
-    <InlineNotification
-        lowContrast
-        hideCloseButton
-        kind="error"
-        title="Failed to load history:"
-        subtitle={error}
-    >
-        <svelte:fragment slot="actions">
-            <NotificationActionButton on:click={refreshData}>Refresh</NotificationActionButton>
-        </svelte:fragment>
-    </InlineNotification>
-{/await}
+{/if}
 
 <style>
-    .toggler {
-        float: right;
-    }
-
     .divider {
         margin-bottom: 1em;
     }

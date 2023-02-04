@@ -15,10 +15,10 @@ const IndexName = "pomu"
 
 func (app *Application) SetupSearch() {
 	if strings.ToLower(os.Getenv("MEILISEARCH_ENABLED")) != "true" {
-		log.Info("Meilisearch integration is disabled")
+		log.Info("meilisearch integration is disabled")
 		return
 	} else {
-		log.Info("Meilisearch integration is enabled")
+		log.Info("meilisearch integration is enabled")
 	}
 
 	app.searchClient = meilisearch.NewClient(meilisearch.ClientConfig{
