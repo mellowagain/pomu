@@ -388,33 +388,32 @@ paths:
         "307":
           description: | 
             OK - Follow redirect (response header `Location`) to download the requested file.
-            The returned `Content-Type` and `Content-Disposition` may differ depending on
-            what type you requested and when the stream was archived:
 
-            - **Type `video`**
-              - Archived before 2023-01-26:
-                - `Content-Type: application-octet/stream`
-                - No `Content-Disposition` header
-              - Archived between 2023-01-27 and 2023-02-04:
-                - `Content-Type: video/mp4`
-                - `Content-Disposition: inline`
-              - Archived after 2023-02-05:
-                - `Content-Type: video/mp4`
-                - `Content-Disposition: attachment`
-            - **Type `thumbnail`**
-              - Archived before 2023-01-26:
-                - `Content-Type: application-octet/stream`
-                - No `Content-Disposition` header
-              - Archived after 2023-01-27:
-                - `Content-Type: image/jpeg`
-                - `Content-Disposition: inline`
-            - **Type `ffmpeg`**
-              - Archived before 2023-01-26:
-                - `Content-Type: application-octet/stream`
-                - No `Content-Disposition` header
-              - Archived after 2023-01-27:
-                - `Content-Type: text/plain`
-                - `Content-Disposition: inline`
+            > warning
+            > The returned `Content-Type` and `Content-Disposition` may differ depending on
+            > what type you requested and when the stream was archived:
+
+            - **Type `video`** archived before 2023-01-26:
+              - `Content-Type: application-octet/stream`
+              - No `Content-Disposition` header
+            - **Type `video`** archived between 2023-01-27 and 2023-02-04:
+              - `Content-Type: video/mp4`
+              - `Content-Disposition: inline`
+            - **Type `video`** archived after 2023-02-05:
+              - `Content-Type: video/mp4`
+              - `Content-Disposition: attachment`
+            - **Type `thumbnail`** archived before 2023-01-26:
+              - `Content-Type: application-octet/stream`
+              - No `Content-Disposition` header
+            - **Type `thumbnail`** archived after 2023-01-27:
+              - `Content-Type: image/jpeg`
+              - `Content-Disposition: inline`
+            - **Type `ffmpeg`** archived before 2023-01-26:
+              - `Content-Type: application-octet/stream`
+              - No `Content-Disposition` header
+            - **Type `ffmpeg`** archived after 2023-01-27:
+              - `Content-Type: text/plain`
+              - `Content-Disposition: inline`
           content:
             application/octet-stream:
               schema:

@@ -40,7 +40,9 @@ paths:
       operationId: thumbnail
       description: |
         Returns maximum resolution thumbnail for archive.
-        This endpoint is deprecated: consider using `GET /api/download/{videoId}/thumbnail`.
+        
+        > error
+        > This endpoint is deprecated: consider using `GET /api/download/{videoId}/thumbnail`.
       deprecated: true
       parameters:
         - $ref: "#/components/parameters/videoID"
@@ -57,7 +59,9 @@ paths:
       operationId: log
       description: |
         Returns ffmpeg log for archive.
-        This endpoint is deprecated: consider using `GET /api/download/{videoId}/ffmpeg`.
+        
+        > error
+        > This endpoint is deprecated: consider using `GET /api/download/{videoId}/ffmpeg`.
       deprecated: true
       parameters:
         - $ref: "#/components/parameters/videoID"
@@ -74,7 +78,9 @@ paths:
       operationId: video
       description: |
         Returns video file for archive.
-        This endpoint is deprecated: consider using `GET /api/download/{videoId}/video`.
+        
+        > error
+        > This endpoint is deprecated: consider using `GET /api/download/{videoId}/video`.
       deprecated: true
       parameters:
         - $ref: "#/components/parameters/videoID"
