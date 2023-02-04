@@ -394,7 +394,7 @@ paths:
             > what type you requested and when the stream was archived:
 
             - **Type `video`** archived before 2023-01-26:
-              - `Content-Type: application-octet/stream`
+              - `Content-Type: binary/octet-stream`
               - No `Content-Disposition` header
             - **Type `video`** archived between 2023-01-27 and 2023-02-04:
               - `Content-Type: video/mp4`
@@ -403,13 +403,13 @@ paths:
               - `Content-Type: video/mp4`
               - `Content-Disposition: attachment`
             - **Type `thumbnail`** archived before 2023-01-26:
-              - `Content-Type: application-octet/stream`
+              - `Content-Type: binary/octet-stream`
               - No `Content-Disposition` header
             - **Type `thumbnail`** archived after 2023-01-27:
               - `Content-Type: image/jpeg`
               - `Content-Disposition: inline`
             - **Type `ffmpeg`** archived before 2023-01-26:
-              - `Content-Type: application-octet/stream`
+              - `Content-Type: binary/octet-stream`
               - No `Content-Disposition` header
             - **Type `ffmpeg`** archived after 2023-01-27:
               - `Content-Type: text/plain`
