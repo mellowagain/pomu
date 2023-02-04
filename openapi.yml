@@ -390,8 +390,7 @@ paths:
             OK - Follow redirect (response header `Location`) to download the requested file.
 
             > warning
-            > The returned `Content-Type` and `Content-Disposition` may differ depending on
-            > what type you requested and when the stream was archived:
+            > The returned `Content-Type` and `Content-Disposition` may differ depending on what type you requested and when the stream was archived:
 
             - **Type `video`** archived before 2023-01-26:
               - `Content-Type: application-octet/stream`
