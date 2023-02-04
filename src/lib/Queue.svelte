@@ -1,83 +1,76 @@
 <script lang="ts">
-    import { InlineNotification, Loading, Row } from "carbon-components-svelte";
+    import { InlineNotification, NotificationActionButton, Row } from "carbon-components-svelte";
     import { onDestroy } from "svelte";
 
-    import { readable } from "svelte/store";
-    import { showNotification } from "./notifications";
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
     import type { VideoInfo } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
 
-    onDestroy(() => {
-        clearTimeout(timeout);
-        loading = true;
-    });
+    let queue = requestQueue();
+    let length = 0;
 
-    let timeout: NodeJS.Timeout;
-    let queue = readable<Map<string, VideoInfo>>(new Map(), (set) => {
-        const f = async () => {
-            try {
-                let results = await fetch("/api/queue").then((r) => r.json());
-                // transform from array which contains id into id -> array map
-                let map = new Map();
-                for (let r of results) {
-                    map.set(r.id, r);
-                }
+    async function requestQueue(): Promise<VideoInfo[]> {
+        // set length to 0 before fetching in case we exit with an error
+        length = 0;
 
-                set(map);
-                loading = false;
-            } catch (e) {
-                showNotification({
-                    title: "Failed to get queue",
-                    description: e.text,
-                    kind: "error",
-                    timeout: 5000,
-                });
-            }
+        let results = await fetch("/api/queue", {
+            signal: abortController.signal
+        });
+        let json: VideoInfo[] = await results.json();
 
-            if (document.hidden) {
-                console.debug("Page is hidden, next update in 30 seconds");
-                timeout = setTimeout(f, 30000);
-            } else {
-                console.debug("Page is visible, next update in 10 seconds");
-                timeout = setTimeout(f, 10000);
-            }
-        };
-        f();
-    });
+        length = json.length;
+        return json;
+    }
 
-    let loading = true;
+    // small wrapper function to re-assign `queue` and force svelte to re-fetch the data.
+    // this is used by the notification action button to force a refresh in case of an error
+    function refreshData() {
+        queue = requestQueue();
+    }
+
+    let abortController = new AbortController();
+    onDestroy(() => abortController.abort());
 </script>
 
 <Row>
     <h1>
         Queue
 
-        {#if $queue.size > 0 && !loading}
-            ({$queue.size})
+        {#if length !== 0}
+            ({length})
         {/if}
     </h1>
 </Row>
 
-{#if loading}
+{#await queue}
+    <!-- 4 is the average amount of videos in the queue so display that many skeletons -->
     <SkeletonVideoEntry />
     <SkeletonVideoEntry />
     <SkeletonVideoEntry />
     <SkeletonVideoEntry />
-{:else}
-    {#each [...$queue.entries()] as [id, info] (id)}
-        <VideoEntry {info} />
-    {/each}
-
-    {#if $queue.size === 0 && !loading}
+{:then result}
+    {#if result.size === 0}
         <InlineNotification
             lowContrast
             hideCloseButton
             kind="info"
             subtitle="There are currently no streams in the queue"
         />
+    {:else}
+        {#each result as info (info.id)}
+            <VideoEntry {info} />
+        {/each}
     {/if}
-{/if}
-
-<style>
-</style>
+{:catch error}
+    <InlineNotification
+        lowContrast
+        hideCloseButton
+        kind="error"
+        title="Failed to load queue:"
+        subtitle={error}
+    >
+        <svelte:fragment slot="actions">
+            <NotificationActionButton on:click={refreshData}>Retry</NotificationActionButton>
+        </svelte:fragment>
+    </InlineNotification>
+{/await}
