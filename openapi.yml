@@ -18,12 +18,6 @@ servers:
   - url: https://dev.pomu.app/api
     description: Development instance
 
-x-topics:
-  - title: Notice
-    content: |
-      This API documentation is for the `pomu.app` API server, which does not host files.
-      If you wish to access files (`.mp4`, `.jpg` or `.log`), [please see the API documentation for our CDN](https://docs-cdn.pomu.app).
-
 components:
   schemas:
     video:
@@ -392,7 +386,35 @@ paths:
       description: Downloads the request `type` of video `videoId`
       responses:
         "307":
-          description: OK - Follow redirect (response header `Location`) to find the download URL
+          description: | 
+            OK - Follow redirect (response header `Location`) to download the requested file.
+            The returned `Content-Type` and `Content-Disposition` may differ depending on
+            what type you requested and when the stream was archived:
+
+            - **Type `video`**
+              - Archived before 2023-01-26:
+                - `Content-Type: application-octet/stream`
+                - No `Content-Disposition` header
+              - Archived between 2023-01-27 and 2023-02-04:
+                - `Content-Type: video/mp4`
+                - `Content-Disposition: inline`
+              - Archived after 2023-02-05:
+                - `Content-Type: video/mp4`
+                - `Content-Disposition: attachment`
+            - **Type `thumbnail`**
+              - Archived before 2023-01-26:
+                - `Content-Type: application-octet/stream`
+                - No `Content-Disposition` header
+              - Archived after 2023-01-27:
+                - `Content-Type: image/jpeg`
+                - `Content-Disposition: inline`
+            - **Type `ffmpeg`**
+              - Archived before 2023-01-26:
+                - `Content-Type: application-octet/stream`
+                - No `Content-Disposition` header
+              - Archived after 2023-01-27:
+                - `Content-Type: text/plain`
+                - `Content-Disposition: inline`
           content:
             application/octet-stream:
               schema:
@@ -403,7 +425,7 @@ paths:
             # Bad Request
             One of these two things occurred:
             - Video or ffmpeg log download has been requested but the video has not yet finished archiving.
-            - A bad user agent has been sent with the request. Please see the `User-Agent` header (defined above or to the right)
+            - A bad user agent has been sent with the request. Please see the `User-Agent` header definition in this file.
         "404":
           description: Not Found
   /logz:

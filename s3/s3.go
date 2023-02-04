@@ -42,12 +42,19 @@ func (client *Client) Upload(path string, reader io.Reader, contentType string) 
 		contentType = "binary/octet-stream"
 	}
 
+	contentDisposition := "inline"
+
+	// for legal reasons, we cannot embed the video directly
+	if contentType == "video/mp4" {
+		contentDisposition = "attachment"
+	}
+
 	_, err := client.uploader.Upload(&s3manager.UploadInput{
 		Body:               reader,
 		Bucket:             aws.String(client.bucket),
 		Key:                aws.String(path),
 		ContentType:        aws.String(contentType),
-		ContentDisposition: aws.String("inline"),
+		ContentDisposition: aws.String(contentDisposition),
 	}, func(u *s3manager.Uploader) {
 		u.LeavePartsOnError = true
 	})

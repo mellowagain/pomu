@@ -2,8 +2,8 @@ openapi: 3.0.3
 
 info:
   title: pomu.app CDN API
-  version: 0.0.1
-  description: Public CDN API for pomu.app
+  version: 0.0.1-DEPRECATED
+  description: (Deprecated) Public CDN API for pomu.app
   contact:
     name: General inqueries regarding API
     email: mari@pomu.app
