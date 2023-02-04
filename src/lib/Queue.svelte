@@ -6,8 +6,9 @@
     import type { VideoInfo } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
 
-    let queue = requestQueue();
     let length = 0;
+
+    let abortController = new AbortController();
 
     async function requestQueue(): Promise<VideoInfo[]> {
         // set length to 0 before fetching in case we exit with an error
@@ -28,8 +29,9 @@
         queue = requestQueue();
     }
 
-    let abortController = new AbortController();
     onDestroy(() => abortController.abort());
+
+    let queue = requestQueue();
 </script>
 
 <Row>

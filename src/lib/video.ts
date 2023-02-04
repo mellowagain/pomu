@@ -34,6 +34,6 @@ export function humanizeFileSize(sizeBytes: number) {
 }
 
 export interface HistoryResponse {
-    videos: Map<string, VideoInfo>,
+    videos: VideoInfo[],
     totalItems: number
 }

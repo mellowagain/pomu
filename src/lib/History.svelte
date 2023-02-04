@@ -8,68 +8,40 @@
         Pagination,
         PaginationSkeleton,
         Row,
-        Toggle
     } from "carbon-components-svelte";
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
-    import type { HistoryResponse } from "./video";
+    import type {HistoryResponse, VideoInfo} from "./video";
     import VideoEntry from "./VideoEntry.svelte";
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy } from "svelte";
 
-    // Search parameters
     let sorting = "desc";
-    let displayUnfinished = false;
     let page = 1;
     let limit = 25;
 
-    let history = requestHistory();
-    let intervalId;
-
-    function refreshData(invokedByInterval = false) {
-        history = requestHistory();
-
-        // If we manually refresh the data, reschedule the interval, so it doesn't cause double refreshes
-        if (!invokedByInterval) {
-            try {
-                clearInterval(intervalId);
-            } catch {
-                // In case the interval is already cleared, clearInterval will throw an error but that's fine with us so just continue
-            }
-
-            scheduleRefresh();
-        }
-    }
+    let abortController = new AbortController();
 
     async function requestHistory(): Promise<HistoryResponse> {
-        let results = await fetch(`/api/history?page=${page - 1}&limit=${limit}&sort=${sorting}&unfinished=${displayUnfinished}`);
-        let json = await results.json();
+        let results = await fetch(`/api/history?page=${page - 1}&limit=${limit}&sort=${sorting}`, {
+            signal: abortController.signal
+        });
+        let json: VideoInfo[] = await results.json();
 
         return {
             totalItems: +results.headers.get("X-Pomu-Pagination-Total"),
-            videos: new Map(json.map(entry => [entry.id, entry]))
+            videos: json
         };
     }
 
-    function scheduleRefresh() {
-        intervalId = setInterval(() => refreshData(true), 60000);
+    // small wrapper function to re-assign `history` and force svelte to re-fetch the data.
+    // this is used by basically every button below
+    function refreshData() {
+        history = requestHistory();
     }
 
-    function handleVisibilityChange() {
-        switch (document.visibilityState) {
-            case "visible":
-                refreshData();
-                scheduleRefresh();
-                break;
-            case "hidden":
-                clearInterval(intervalId);
-                break;
-        }
-    }
+    onDestroy(() => abortController.abort());
 
-    onMount(() => scheduleRefresh());
-    onDestroy(() => clearInterval(intervalId));
+    let history = requestHistory();
 </script>
-
-<svelte:window on:visibilitychange={handleVisibilityChange}/>
 
 <Grid>
     <Row>
@@ -78,13 +50,7 @@
         </Column>
         <Column></Column>
         <Column>
-            <div class="toggler">
-                <Toggle
-                    labelText="Display unfinished"
-                    bind:toggled={displayUnfinished}
-                    on:toggle={refreshData}
-                />
-            </div>
+            <!-- todo: add search bar here -->
         </Column>
         <Column>
             <Dropdown
@@ -117,9 +83,6 @@
             hideCloseButton
             kind="info"
             subtitle="No streams have finished recording"
-            on:close={(e) => {
-                e.preventDefault();
-            }}
         />
     {:else}
         <Pagination
@@ -131,7 +94,7 @@
             on:click:button--next={refreshData}
         />
 
-        {#each [...result.videos.entries()] as [id, info] (id)}
+        {#each result.videos as info (info.id)}
             <VideoEntry {info} />
         {/each}
 
@@ -154,16 +117,12 @@
         subtitle={error}
     >
         <svelte:fragment slot="actions">
-            <NotificationActionButton on:click={refreshData}>Refresh</NotificationActionButton>
+            <NotificationActionButton on:click={refreshData}>Retry</NotificationActionButton>
         </svelte:fragment>
     </InlineNotification>
 {/await}
 
 <style>
-    .toggler {
-        float: right;
-    }
-
     .divider {
         margin-bottom: 1em;
     }
