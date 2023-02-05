@@ -3,12 +3,13 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/lib/pq"
-	"github.com/meilisearch/meilisearch-go"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/lib/pq"
+	"github.com/meilisearch/meilisearch-go"
+	log "github.com/sirupsen/logrus"
 )
 
 const IndexName = "pomu"
@@ -182,7 +183,8 @@ func allVideos(db *sql.DB) ([]Video, error) {
 			&video.ChannelId,
 			&video.Thumbnail,
 			&video.FileSize,
-			&video.Length); err != nil {
+			&video.Length,
+			&video.Downloads); err != nil {
 			log.WithFields(log.Fields{"error": err}).Warn("failed to scan row into Video")
 			continue
 		}

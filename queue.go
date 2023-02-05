@@ -2,8 +2,9 @@ package main
 
 import (
 	"database/sql"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/lib/pq"
@@ -49,7 +50,8 @@ func (app *Application) getQueue() (videos []Video, err error) {
 			&video.ChannelId,
 			&video.Thumbnail,
 			&video.FileSize,
-			&video.Length); err != nil {
+			&video.Length,
+			&video.Downloads); err != nil {
 			sentry.CaptureException(err)
 			log.Println("Error scanning videos:", err)
 			continue

@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/getsentry/sentry-go"
-	"github.com/lib/pq"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
 )
 
 func QueueUpcomingStreams(app *Application) {
@@ -58,7 +59,8 @@ func QueueUpcomingStreams(app *Application) {
 				&video.ChannelId,
 				&video.Thumbnail,
 				&video.FileSize,
-				&video.Length)
+				&video.Length,
+				&video.Downloads)
 
 			// Video already exists in db, skip it
 			if err == nil {
@@ -120,7 +122,8 @@ func QueueUpcomingStreams(app *Application) {
 				&video.ChannelId,
 				&video.Thumbnail,
 				&video.FileSize,
-				&video.Length); err != nil {
+				&video.Length,
+				&video.Downloads); err != nil {
 				tx.Rollback()
 				log.Printf("failed to get video for %s\n", stream.Id)
 				sentry.CaptureException(err)

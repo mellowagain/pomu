@@ -3,13 +3,15 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"net/http"
-	"os"
-	"strings"
 )
 
 const (
@@ -69,6 +71,7 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sentry.CaptureException(err)
 		http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
+		log.Print(err)
 		return
 	}
 
@@ -103,6 +106,25 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 	case TypeVideo:
 		if r.Method != "HEAD" {
 			videoDownloadCounter.Inc()
+			tx, err_db := app.db.Begin()
+			statement, err := tx.Prepare("update videos set downloads = downloads + 1 where id = $1")
+
+			if err_db != nil {
+				log.Println("Download counter error: ", err_db)
+				return
+			}
+
+			statement.QueryRow(videoId)
+			if err != nil {
+				log.Println("Download counter error: ", err)
+				return
+			}
+
+			if err := tx.Commit(); err != nil {
+				log.Println("Download counter error (Commit): ", err)
+				return
+			}
+
 		}
 
 		url = fmt.Sprintf("%s/%s.mp4", os.Getenv("S3_DOWNLOAD_URL"), videoId)

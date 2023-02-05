@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
@@ -18,6 +16,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 )
@@ -167,7 +168,8 @@ func (app *Application) recordFinished(db *sql.DB, id string, size int64) error 
 		&video.ChannelId,
 		&video.Thumbnail,
 		&video.FileSize,
-		&video.Length); err != nil {
+		&video.Length,
+		&video.Downloads); err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("failed to serialize row into video")
 		return err
 	}

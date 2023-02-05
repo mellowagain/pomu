@@ -3,11 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"pomu/qualities"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/lib/pq"
@@ -27,6 +28,7 @@ type Video struct {
 	DownloadUrl string    `json:"downloadUrl,omitempty"` // Not actually part of the query
 	FileSize    string    `json:"fileSizeBytes,omitempty"`
 	Length      string    `json:"length,omitempty"`
+	Downloads   int       `json:"downloads"`
 }
 
 type VideoRequest struct {
@@ -116,7 +118,9 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		&video.ChannelId,
 		&video.Thumbnail,
 		&video.FileSize,
-		&video.Length)
+		&video.Length,
+		&video.Downloads,
+	)
 
 	var reschedule bool
 
@@ -165,7 +169,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			&video.ChannelId,
 			&video.Thumbnail,
 			&video.FileSize,
-			&video.Length); err != nil {
+			&video.Length,
+			&video.Downloads); err != nil {
 			sentry.CaptureException(err)
 			http.Error(w, "failed to create new video", http.StatusInternalServerError)
 			return
@@ -192,7 +197,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 					&video.ChannelId,
 					&video.Thumbnail,
 					&video.FileSize,
-					&video.Length); err != nil {
+					&video.Length,
+					&video.Downloads); err != nil {
 				sentry.CaptureException(err)
 				log.Println(err)
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)

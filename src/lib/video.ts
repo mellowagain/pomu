@@ -20,6 +20,7 @@ export interface VideoInfo {
     downloadUrl: string,
     fileSizeBytes: string,
     length: string,
+    downloads: number,
 }
 
 export function humanizeFileSize(sizeBytes: number) {
