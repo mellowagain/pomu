@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const IndexName = "pomu"
+const IndexName = "pomu2"
 
 func (app *Application) SetupSearch() {
 	if strings.ToLower(os.Getenv("MEILISEARCH_ENABLED")) != "true" {

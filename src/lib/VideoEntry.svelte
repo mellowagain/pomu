@@ -27,7 +27,6 @@
     import { humanizeFileSize } from "./video";
     import VideoLog from "./VideoLog.svelte";
     import type { User } from "./api";
-    import moment from "moment";
 
     export let info: VideoInfo;
 
@@ -118,7 +117,7 @@
                 {#if info.finished}
                     <br />
                     <TooltipDefinition tooltipText="{startDate.toDateString()} {startDate.toTimeString()}">
-                        Streamed {moment(info.scheduledStart).fromNow()}
+                        Streamed {dayjs(info.scheduledStart).fromNow()}
                     </TooltipDefinition>
                 {/if}
             </h5>
@@ -158,7 +157,7 @@
                     {#if info.finished}
                         {#await downloadAvailable()}
                             <Button skeleton />
-                        {:then}
+                        {:then _}
                             <Button
                                 icon={CloudDownload}
                                 href={info.downloadUrl}
@@ -166,7 +165,7 @@
                             >
                                 Download ({humanFileSize})
                             </Button>
-                        {:catch}
+                        {:catch _}
                             <Button icon={CloudDownload} disabled>
                                 Not found
                             </Button>
