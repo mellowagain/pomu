@@ -315,24 +315,28 @@ func uploadLog(s3 *s3.Client, id string) {
 	}
 }
 
+func logVideoFailure(request VideoRequest, args ...any) {
+	log.WithFields(log.Fields{"video_url": request.VideoUrl}).Error(args...)
+}
+
 func StartRecording(app *Application, request VideoRequest) {
 	log.Println("Waiting for", request.VideoUrl)
 	id, err := request.Id()
 	if err != nil {
-		log.Println("Failed to get video id for", request.VideoUrl)
+		logVideoFailure(request, "Failed to get video id")
 		return
 	}
 	// See if this video has been re-scheduled into the future...
 	metadata, err := GetVideoMetadata(id)
 
 	if err != nil {
-		log.Println("Failed to get metadata for scheduled video", request.VideoUrl)
+		logVideoFailure(request, "Failed to get metadata for scheduled video")
 		return
 	}
 
 	newStartTime, err := GetVideoStartTime(metadata)
 	if err != nil {
-		log.Println("Failed to parse new start time from metadata for video", request.VideoUrl)
+		logVideoFailure(request, "Failed to parse new start time from metadata for video")
 		return
 	}
 
@@ -349,7 +353,7 @@ func StartRecording(app *Application, request VideoRequest) {
 			StartAt(time.Now().Add(RETRY_INTERVAL)).
 			Tag("Reschedule"+request.VideoUrl).
 			Do(app.scheduleVideo, metadata, id, metadata); err != nil {
-			log.Println("Failed to reschedule video", request.VideoUrl, "error was", err)
+			logVideoFailure(request, "Failed to reschedule video, error was", err)
 		}
 		return
 	}
@@ -364,7 +368,7 @@ func StartRecording(app *Application, request VideoRequest) {
 
 			err = app.recordFinished(app.db, id, size)
 			if err != nil {
-				log.Println("Failed record finish for", id, ":", err)
+				logVideoFailure(request, "Failed record finish, error was", err)
 			}
 			return
 		} else if err == ErrorLivestreamNotStarted {
@@ -373,7 +377,7 @@ func StartRecording(app *Application, request VideoRequest) {
 			log.Println("Failed checking livestream started:", err)
 			err = recordFailed(app.db, id)
 			if err != nil {
-				log.Println("Failed record fail for", id)
+				logVideoFailure(request, "Failed record, error was", err)
 			}
 			return
 		}
