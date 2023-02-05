@@ -316,39 +316,79 @@ func uploadLog(s3 *s3.Client, id string) {
 	}
 }
 
+func logVideo(request VideoRequest, err error) (entry *log.Entry) {
+	if err != nil {
+		entry = log.WithFields(log.Fields{"video_url": request.VideoUrl})
+	} else {
+		entry = log.WithFields(log.Fields{"video_url": request.VideoUrl, "error": err})
+	}
+	return
+}
+
 func StartRecording(app *Application, request VideoRequest) {
-	log.Println("Waiting for", request.VideoUrl)
+	logVideo(request, nil).Info("Start recording")
 	id, err := request.Id()
 	if err != nil {
-		log.Println("failed to get video id for", request.VideoUrl)
+		logVideo(request, err).Error("Failed to get video id")
 		return
 	}
-	for try := 0; try < 120; try += 1 {
+	// See if this video has been re-scheduled into the future...
+	metadata, err := GetVideoMetadata(id)
+
+	if err != nil {
+		logVideo(request, err).Error("Failed to get metadata for scheduled video")
+		return
+	}
+
+	newStartTime, err := GetVideoStartTime(metadata)
+	if err != nil {
+		logVideo(request, err).Error("Failed to parse new start time from metadata for video")
+		return
+	}
+
+	const RETRY_INTERVAL = 1 * time.Minute
+	const MAX_RETRIES = 120
+	const MAX_DURATION = RETRY_INTERVAL * MAX_RETRIES
+
+	if time.Until(newStartTime) > (RETRY_INTERVAL * MAX_RETRIES) {
+		logVideo(request, nil).Info("video has been moved to more than", MAX_DURATION.String(), "into the future, rescheduling")
+		// Schedule a new cronjob that will re-queue the video
+		if _, err := Scheduler.
+			SingletonMode().
+			LimitRunsTo(1).
+			StartAt(time.Now().Add(RETRY_INTERVAL)).
+			Tag("Reschedule"+request.VideoUrl).
+			Do(app.scheduleVideo, metadata, id, metadata); err != nil {
+			logVideo(request, err).Error("Failed to reschedule video")
+		}
+		return
+	}
+
+	for try := 0; try < MAX_RETRIES; try += 1 {
 		if started, err := hasLivestreamStarted(request); err == nil && started {
 			size, err := record(request)
 			if err != nil {
 				log.Println("record failed:", err)
 				return
 			}
-
 			err = app.recordFinished(app.db, id, size)
 			if err != nil {
-				log.Println("Failed record finish for", id, ":", err)
+				logVideo(request, err).Error("Failed record finish")
 			}
 			return
 		} else if err == ErrorLivestreamNotStarted {
-			log.Println("Livestream has not started yet")
+			logVideo(request, nil).Info("Livestream has not started yet")
 		} else if err != nil {
-			log.Println("Failed checking livestream started:", err)
+			logVideo(request, err).Error("Failed checking livestream started")
 			err = recordFailed(app.db, id)
 			if err != nil {
-				log.Println("Failed record fail for", id)
+				logVideo(request, err).Error("Failed recordFailed")
 			}
 			return
 		}
 
-		log.Println("Waiting for", request.VideoUrl, "try=", try)
-		time.Sleep(1 * time.Minute)
+		logVideo(request, nil).Info("Waiting for video, try=", try)
+		time.Sleep(RETRY_INTERVAL)
 	}
 }
 

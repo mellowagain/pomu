@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { InlineNotification, NotificationActionButton, Row } from "carbon-components-svelte";
+    import {
+        InlineNotification,
+        NotificationActionButton,
+        Row,
+    } from "carbon-components-svelte";
     import { onDestroy } from "svelte";
 
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
@@ -15,7 +19,7 @@
         length = 0;
 
         let results = await fetch("/api/queue", {
-            signal: abortController.signal
+            signal: abortController.signal,
         });
         let json: VideoInfo[] = await results.json();
 
@@ -51,7 +55,7 @@
     <SkeletonVideoEntry />
     <SkeletonVideoEntry />
 {:then result}
-    {#if result.size === 0}
+    {#if result.length === 0}
         <InlineNotification
             lowContrast
             hideCloseButton
@@ -72,7 +76,9 @@
         subtitle={error}
     >
         <svelte:fragment slot="actions">
-            <NotificationActionButton on:click={refreshData}>Retry</NotificationActionButton>
+            <NotificationActionButton on:click={refreshData}
+                >Retry</NotificationActionButton
+            >
         </svelte:fragment>
     </InlineNotification>
 {/await}

@@ -1,5 +1,11 @@
 <script lang="ts">
-    import {Button, CodeSnippet, InlineNotification, Modal, NotificationActionButton} from "carbon-components-svelte";
+    import {
+        Button,
+        CodeSnippet,
+        InlineNotification,
+        Modal,
+        NotificationActionButton,
+    } from "carbon-components-svelte";
     import { Report } from "carbon-icons-svelte";
 
     import { onDestroy } from "svelte";
@@ -27,7 +33,7 @@
             });
         } else {
             // in-progress log
-            result = await fetch("/api/logz?url=" + encodeURIComponent("https://youtu.be/" + id), { method });
+            result = await fetch("/api/logz?id=" + id, { method });
         }
 
         if (result.status != 200) {
