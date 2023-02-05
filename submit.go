@@ -57,7 +57,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	videoId := qualities.ParseVideoID(request.VideoUrl)
 
-	videoMetadata, err := GetVideoMetadataWithToken(videoId)
+	videoMetadata, err := GetVideoMetadata(videoId)
 
 	if err != nil {
 		http.Error(w, "failed to get video metadata", http.StatusBadRequest)
@@ -238,7 +238,7 @@ func GetVideoStartTime(videoMetadata *youtube.Video) (startTime time.Time, err e
 	} else {
 		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ScheduledStartTime)
 	}
-	return startTime, err
+	return
 }
 
 func (app *Application) scheduleVideo(
