@@ -10,7 +10,7 @@
         OutboundLink,
         Row,
         SkeletonText,
-        Tile,
+        Tile, TooltipDefinition,
         TooltipIcon,
         UnorderedList,
     } from "carbon-components-svelte";
@@ -33,6 +33,7 @@
     dayjs.extend(duration);
     dayjs.extend(relativeTime);
 
+    $: startDate = new Date(info.scheduledStart);
     $: humanLength = dayjs.duration(+info.length, "seconds").humanize();
     $: realLength = dayjs.duration(+info.length, "seconds").format("HH:mm:ss");
 
@@ -113,19 +114,25 @@
                 >
                     {info.channelName}
                 </OutboundLink>
+                {#if info.finished}
+                    <br />
+                    <TooltipDefinition tooltipText="{startDate.toDateString()} {startDate.toTimeString()}">
+                        Streamed {dayjs(info.scheduledStart).fromNow()}
+                    </TooltipDefinition>
+                {/if}
             </h5>
         </Column>
         <info-container>
             <Column>
                 {#if !info.finished}
                     <p>
-                        {#if Date.now() > new Date(info.scheduledStart).getTime()}
+                        {#if Date.now() > startDate.getTime()}
                             Live since
                         {:else}
                             Scheduled for
                         {/if}
 
-                        {new Date(info.scheduledStart).toTimeString()}
+                        {startDate.toTimeString()}
                     </p>
                     <br />
                     <VideoCountdown from={info.scheduledStart} />
@@ -150,7 +157,7 @@
                     {#if info.finished}
                         {#await downloadAvailable()}
                             <Button skeleton />
-                        {:then}
+                        {:then _}
                             <Button
                                 icon={CloudDownload}
                                 href={info.downloadUrl}
@@ -158,7 +165,7 @@
                             >
                                 Download ({humanFileSize})
                             </Button>
-                        {:catch}
+                        {:catch _}
                             <Button icon={CloudDownload} disabled>
                                 Not found
                             </Button>
@@ -184,7 +191,7 @@
     bind:open={submittersModal}
     size="sm"
     passiveModal
-    modalHeading={"Submitted by"}
+    modalHeading="Submitted by"
 >
     {#if submittersModal}
         {#await submittersToUsers(info.submitters)}

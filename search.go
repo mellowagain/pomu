@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const IndexName = "pomu"
+const IndexName = "pomu2"
 
 func (app *Application) SetupSearch() {
 	if strings.ToLower(os.Getenv("MEILISEARCH_ENABLED")) != "true" {
