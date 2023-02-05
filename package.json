@@ -24,6 +24,7 @@
   "dependencies": {
     "dayjs": "^1.11.4",
     "meilisearch": "^0.30.0",
+    "moment": "^2.29.4",
     "svelte-countdown": "git+https://github.com/emily33901/svelte-countdown.git"
   },
   "packageManager": "yarn@3.3.1"
