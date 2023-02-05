@@ -3,11 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"pomu/qualities"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/lib/pq"
@@ -55,7 +56,7 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 
 	videoId := qualities.ParseVideoID(request.VideoUrl)
 
-	videoMetadata, err := GetVideoMetadataWithToken(videoId)
+	videoMetadata, err := GetVideoMetadata(videoId)
 
 	if err != nil {
 		http.Error(w, "failed to get video metadata", http.StatusBadRequest)
@@ -232,7 +233,7 @@ func GetVideoStartTime(videoMetadata *youtube.Video) (startTime time.Time, err e
 	} else {
 		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ScheduledStartTime)
 	}
-	return startTime, err
+	return
 }
 
 func (app *Application) scheduleVideo(

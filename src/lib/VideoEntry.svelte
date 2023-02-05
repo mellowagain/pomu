@@ -8,7 +8,8 @@
         ListItem,
         Modal,
         OutboundLink,
-        Row, SkeletonText,
+        Row,
+        SkeletonText,
         Tile,
         TooltipIcon,
         UnorderedList,
@@ -25,7 +26,7 @@
     import VideoCountdown from "./VideoCountdown.svelte";
     import { humanizeFileSize } from "./video";
     import VideoLog from "./VideoLog.svelte";
-    import type {User} from "./api";
+    import type { User } from "./api";
 
     export let info: VideoInfo;
 
@@ -37,11 +38,11 @@
 
     $: humanFileSize = humanizeFileSize(+info.fileSizeBytes);
 
-    let downloadAvailable = (async () => {
+    let downloadAvailable = async () => {
         let result = await fetch(info.downloadUrl, { method: "HEAD" });
         if (result.status == 404) throw 404;
         return;
-    })();
+    };
 
     async function submittersToUsers(submitters: string[]): Promise<User[]> {
         let results: User[] = [];
@@ -52,8 +53,8 @@
                     avatar: "pomu.app",
                     id: "im pomu",
                     name: "pomu.app",
-                    provider: "self"
-                })
+                    provider: "self",
+                });
                 continue;
             }
 
@@ -65,21 +66,24 @@
                     avatar: "",
                     id: data[0],
                     name: data[0],
-                    provider: "google"
+                    provider: "google",
                 });
             } else {
                 let provider = data[0];
                 let id = data[1];
 
                 let user = await fetch(`/api/user/${provider}/${id}`)
-                    .then(res => res.json())
+                    .then((res) => res.json())
                     .then((user: User) => user)
-                    .catch(_ => <User>{
-                        id: id,
-                        avatar: "",
-                        name: `${id} (using ${provider})`,
-                        provider: provider,
-                    });
+                    .catch(
+                        (_) =>
+                            <User>{
+                                id: id,
+                                avatar: "",
+                                name: `${id} (using ${provider})`,
+                                provider: provider,
+                            }
+                    );
 
                 results.push(user);
             }
@@ -144,7 +148,7 @@
                     />
                     <VideoLog downloadUrl={info.downloadUrl} id={info.id} />
                     {#if info.finished}
-                        {#await downloadAvailable}
+                        {#await downloadAvailable()}
                             <Button skeleton />
                         {:then}
                             <Button
@@ -181,7 +185,9 @@
                     {#if user.provider === "self"}
                         <ListItem>
                             Automatically added to queue by pomu.app.
-                            <OutboundLink href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API">
+                            <OutboundLink
+                                href="https://github.com/mellowagain/pomu/wiki/Automatic-Submissions-using-Holodex-API"
+                            >
                                 Learn more
                             </OutboundLink>
                         </ListItem>
