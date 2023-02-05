@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
@@ -18,6 +16,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 )
