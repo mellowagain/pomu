@@ -116,6 +116,8 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 			defer tx.Rollback()
 			statement, err := tx.Prepare("update videos set downloads = downloads + 1 where id = $1")
 
+			//I believe a non vital function like this should just log the error instead of returning http
+
 			if err != nil {
 				log.Println("Download counter error: ", err)
 				return
