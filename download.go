@@ -107,15 +107,21 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "HEAD" {
 			videoDownloadCounter.Inc()
 			tx, err_db := app.db.Begin()
-			statement, err := tx.Prepare("update videos set downloads = downloads + 1 where id = $1")
 
 			if err_db != nil {
-				log.Println("Download counter error: ", err_db)
+				log.Println("cannot start transaction (downloads) ", err_db)
 				return
 			}
 
-			statement.QueryRow(videoId)
+			defer tx.Rollback()
+			statement, err := tx.Prepare("update videos set downloads = downloads + 1 where id = $1")
+
 			if err != nil {
+				log.Println("Download counter error: ", err)
+				return
+			}
+
+			if err := statement.QueryRow(videoId); err != nil {
 				log.Println("Download counter error: ", err)
 				return
 			}
