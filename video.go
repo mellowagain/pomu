@@ -315,28 +315,33 @@ func uploadLog(s3 *s3.Client, id string) {
 	}
 }
 
-func logVideoFailure(request VideoRequest, args ...any) {
-	log.WithFields(log.Fields{"video_url": request.VideoUrl}).Error(args...)
+func logVideo(request VideoRequest, err error) (entry *log.Entry) {
+	if err != nil {
+		entry = log.WithFields(log.Fields{"video_url": request.VideoUrl})
+	} else {
+		entry = log.WithFields(log.Fields{"video_url": request.VideoUrl, "error": err})
+	}
+	return
 }
 
 func StartRecording(app *Application, request VideoRequest) {
 	log.Println("Waiting for", request.VideoUrl)
 	id, err := request.Id()
 	if err != nil {
-		logVideoFailure(request, "Failed to get video id")
+		logVideo(request, err).Error("Failed to get video id")
 		return
 	}
 	// See if this video has been re-scheduled into the future...
 	metadata, err := GetVideoMetadata(id)
 
 	if err != nil {
-		logVideoFailure(request, "Failed to get metadata for scheduled video")
+		logVideo(request, err).Error("Failed to get metadata for scheduled video")
 		return
 	}
 
 	newStartTime, err := GetVideoStartTime(metadata)
 	if err != nil {
-		logVideoFailure(request, "Failed to parse new start time from metadata for video")
+		logVideo(request, err).Error("Failed to parse new start time from metadata for video")
 		return
 	}
 
@@ -345,7 +350,7 @@ func StartRecording(app *Application, request VideoRequest) {
 	const MAX_DURATION = RETRY_INTERVAL * MAX_RETRIES
 
 	if time.Until(newStartTime) > (RETRY_INTERVAL * MAX_RETRIES) {
-		log.Println("Video", request.VideoUrl, " has been moved to more than", MAX_DURATION, "into the future, rescheduling")
+		logVideo(request, nil).Info("video has been moved to more than", MAX_DURATION.String(), "into the future, rescheduling")
 		// Schedule a new cronjob that will re-queue the video
 		if _, err := Scheduler.
 			SingletonMode().
@@ -353,7 +358,7 @@ func StartRecording(app *Application, request VideoRequest) {
 			StartAt(time.Now().Add(RETRY_INTERVAL)).
 			Tag("Reschedule"+request.VideoUrl).
 			Do(app.scheduleVideo, metadata, id, metadata); err != nil {
-			logVideoFailure(request, "Failed to reschedule video, error was", err)
+			logVideo(request, err).Error("Failed to reschedule video")
 		}
 		return
 	}
@@ -368,7 +373,7 @@ func StartRecording(app *Application, request VideoRequest) {
 
 			err = app.recordFinished(app.db, id, size)
 			if err != nil {
-				logVideoFailure(request, "Failed record finish, error was", err)
+				logVideo(request, err).Error("Failed record finish")
 			}
 			return
 		} else if err == ErrorLivestreamNotStarted {
@@ -377,12 +382,12 @@ func StartRecording(app *Application, request VideoRequest) {
 			log.Println("Failed checking livestream started:", err)
 			err = recordFailed(app.db, id)
 			if err != nil {
-				logVideoFailure(request, "Failed record, error was", err)
+				logVideo(request, err).Error("Failed recordFailed")
 			}
 			return
 		}
 
-		log.Println("Waiting for", request.VideoUrl, "try=", try)
+		logVideo(request, nil).Info("Waiting for video, try=", try)
 		time.Sleep(RETRY_INTERVAL)
 	}
 }
