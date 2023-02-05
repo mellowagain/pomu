@@ -124,15 +124,26 @@
             {/await}
         </Column>
         <Column>
-            <Dropdown
-                titleText="Sorting"
-                bind:selectedId={sorting}
-                items={[
-                    { id: "asc", text: "Oldest" },
-                    { id: "desc", text: "Newest" }
-                ]}
-                on:select={refreshData}
-            />
+            {#if searchValue.length === 0}
+                <Dropdown
+                    titleText="Sorting"
+                    bind:selectedId={sorting}
+                    items={[
+                        { id: "asc", text: "Oldest" },
+                        { id: "desc", text: "Newest" }
+                    ]}
+                    on:select={refreshData}
+                />
+            {:else}
+                <Dropdown
+                    titleText="Sorting"
+                    selectedId="0"
+                    items={[
+                        { id: "0", text: "Best Match" },
+                    ]}
+                    disabled
+                />
+            {/if}
         </Column>
     </Row>
 </Grid>
@@ -203,28 +214,37 @@
 
         <PaginationSkeleton />
     {:else}
-        <Pagination
-            totalItems={lastSearch.estimatedTotalHits ?? lastSearch.totalHits}
-            pageSizes={[25, 50, 75, 100]}
-            bind:pageSize={limit}
-            bind:page
-            on:click:button--previous={startSearch}
-            on:click:button--next={startSearch}
-        />
+        {#if lastSearch.hits.length === 0}
+            <InlineNotification
+                lowContrast
+                hideCloseButton
+                kind="info"
+                subtitle="No results found matching your query"
+            />
+        {:else}
+            <Pagination
+                totalItems={lastSearch.estimatedTotalHits ?? lastSearch.totalHits}
+                pageSizes={[25, 50, 75, 100]}
+                bind:pageSize={limit}
+                bind:page
+                on:click:button--previous={startSearch}
+                on:click:button--next={startSearch}
+            />
 
-        {#each lastSearch.hits as info (info.id)}
-            <VideoEntry {info}/>
-        {/each}
+            {#each lastSearch.hits as info (info.id)}
+                <VideoEntry {info}/>
+            {/each}
 
-        <Pagination
-            totalItems={lastSearch.estimatedTotalHits ?? lastSearch.totalHits}
-            pageSizes={[25, 50, 75, 100]}
-            bind:pageSize={limit}
-            bind:page
-            on:update={startSearch}
-            on:click:button--previous={startSearch}
-            on:click:button--next={startSearch}
-        />
+            <Pagination
+                totalItems={lastSearch.estimatedTotalHits ?? lastSearch.totalHits}
+                pageSizes={[25, 50, 75, 100]}
+                bind:pageSize={limit}
+                bind:page
+                on:update={startSearch}
+                on:click:button--previous={startSearch}
+                on:click:button--next={startSearch}
+            />
+        {/if}
     {/if}
 {/if}
 
