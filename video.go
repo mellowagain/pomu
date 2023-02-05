@@ -319,10 +319,42 @@ func StartRecording(app *Application, request VideoRequest) {
 	log.Println("Waiting for", request.VideoUrl)
 	id, err := request.Id()
 	if err != nil {
-		log.Println("failed to get video id for", request.VideoUrl)
+		log.Println("Failed to get video id for", request.VideoUrl)
 		return
 	}
-	for try := 0; try < 120; try += 1 {
+	// See if this video has been re-scheduled into the future...
+	metadata, err := GetVideoMetadata(id)
+
+	if err != nil {
+		log.Println("Failed to get metadata for scheduled video", request.VideoUrl)
+		return
+	}
+
+	newStartTime, err := GetVideoStartTime(metadata)
+	if err != nil {
+		log.Println("Failed to parse new start time from metadata for video", request.VideoUrl)
+		return
+	}
+
+	const RETRY_INTERVAL = 1 * time.Minute
+	const MAX_RETRIES = 120
+	const MAX_DURATION = RETRY_INTERVAL * MAX_RETRIES
+
+	if time.Until(newStartTime) > (RETRY_INTERVAL * MAX_RETRIES) {
+		log.Println("Video", request.VideoUrl, " has been moved to more than", MAX_DURATION, "into the future, rescheduling")
+		// Schedule a new cronjob that will re-queue the video
+		if _, err := Scheduler.
+			SingletonMode().
+			LimitRunsTo(1).
+			StartAt(time.Now().Add(RETRY_INTERVAL)).
+			Tag("Reschedule"+request.VideoUrl).
+			Do(app.scheduleVideo, metadata, id, metadata); err != nil {
+			log.Println("Failed to reschedule video", request.VideoUrl, "error was", err)
+		}
+		return
+	}
+
+	for try := 0; try < MAX_RETRIES; try += 1 {
 		if started, err := hasLivestreamStarted(request); err == nil && started {
 			size, err := record(request)
 			if err != nil {
@@ -347,7 +379,7 @@ func StartRecording(app *Application, request VideoRequest) {
 		}
 
 		log.Println("Waiting for", request.VideoUrl, "try=", try)
-		time.Sleep(1 * time.Minute)
+		time.Sleep(RETRY_INTERVAL)
 	}
 }
 

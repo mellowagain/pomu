@@ -233,7 +233,7 @@ func GetVideoStartTime(videoMetadata *youtube.Video) (startTime time.Time, err e
 	} else {
 		startTime, err = time.Parse(time.RFC3339, videoMetadata.LiveStreamingDetails.ScheduledStartTime)
 	}
-	return startTime, err
+	return
 }
 
 func (app *Application) scheduleVideo(
