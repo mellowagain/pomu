@@ -325,7 +325,7 @@ func logVideo(request VideoRequest, err error) (entry *log.Entry) {
 }
 
 func StartRecording(app *Application, request VideoRequest) {
-	log.Println("Waiting for", request.VideoUrl)
+	logVideo(request, nil).Info("Start recording")
 	id, err := request.Id()
 	if err != nil {
 		logVideo(request, err).Error("Failed to get video id")
@@ -370,16 +370,15 @@ func StartRecording(app *Application, request VideoRequest) {
 				log.Println("record failed:", err)
 				return
 			}
-
 			err = app.recordFinished(app.db, id, size)
 			if err != nil {
 				logVideo(request, err).Error("Failed record finish")
 			}
 			return
 		} else if err == ErrorLivestreamNotStarted {
-			log.Println("Livestream has not started yet")
+			logVideo(request, nil).Info("Livestream has not started yet")
 		} else if err != nil {
-			log.Println("Failed checking livestream started:", err)
+			logVideo(request, err).Error("Failed checking livestream started")
 			err = recordFailed(app.db, id)
 			if err != nil {
 				logVideo(request, err).Error("Failed recordFailed")
