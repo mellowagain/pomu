@@ -27,6 +27,7 @@
 
     let url;
     let apiKey;
+    let indexName;
 
     let abortController = new AbortController();
 
@@ -49,6 +50,7 @@
         let json: SearchMetadata = await results.json();
 
         if (json.enabled) {
+            indexName = json.index;
             url = json.url;
             apiKey = json.apiKey;
         }
@@ -64,7 +66,7 @@
             host: url,
             apiKey
         });
-        let index = searchClient.index("pomu");
+        let index = searchClient.index(indexName);
 
         let search: SearchResponse<Partial<VideoInfo>> = await index.search(searchValue, {
             filter: ["finished = true"],
@@ -79,7 +81,7 @@
         // fix up download urls (as they are not populated, hence the `Partial` in `Partial<VideoInfo>`
         search.hits.forEach((part, index, array) => {
             array[index].downloadUrl = `/api/download/${part.id}/video`;
-        })
+        });
 
         lastSearch = search;
         return search;

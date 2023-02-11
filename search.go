@@ -11,9 +11,9 @@ import (
 	"strings"
 )
 
-const IndexName = "pomu2"
-
 func (app *Application) SetupSearch() {
+	index := os.Getenv("MEILISEARCH_INDEX")
+
 	if strings.ToLower(os.Getenv("MEILISEARCH_ENABLED")) != "true" {
 		log.Info("meilisearch integration is disabled")
 		return
@@ -26,10 +26,10 @@ func (app *Application) SetupSearch() {
 		APIKey: os.Getenv("MEILISEARCH_BACKEND_API_KEY"),
 	})
 
-	if _, err := app.searchClient.GetIndex(IndexName); err != nil {
+	if _, err := app.searchClient.GetIndex(index); err != nil {
 		// index does not exist, create it
 		_, err := app.searchClient.CreateIndex(&meilisearch.IndexConfig{
-			Uid:        IndexName,
+			Uid:        index,
 			PrimaryKey: "id",
 		})
 
@@ -39,7 +39,7 @@ func (app *Application) SetupSearch() {
 		}
 	}
 
-	app.search = app.searchClient.Index(IndexName)
+	app.search = app.searchClient.Index(index)
 
 	// upload existing documents to the search instance
 	videos, err := allVideos(app.db)
@@ -95,7 +95,7 @@ func (app *Application) SetupSearch() {
 		"update_distinct_task_uid":   distinctTaskInfo.TaskUID,
 		"update_filterable_task_uid": filterableTaskInfo.TaskUID,
 		"update_sortable_task_uid":   sortableTaskInfo.TaskUID,
-	}).Info("successfully updated pomu search index with previously archived versions")
+	}).Info("successfully updated search index with previously archived versions")
 }
 
 func SearchMetadata(w http.ResponseWriter, _ *http.Request) {
@@ -106,6 +106,7 @@ func SearchMetadata(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	if enabled {
+		response["index"] = os.Getenv("MEILISEARCH_INDEX")
 		response["url"] = os.Getenv("MEILISEARCH_URL")
 		response["apiKey"] = os.Getenv("MEILISEARCH_FRONTEND_API_KEY")
 	}
