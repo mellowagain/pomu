@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -17,6 +18,8 @@ const (
 	TypeFfmpegLog = "ffmpeg"
 	TypeThumbnail = "thumbnail"
 )
+
+var crawlerUserAgentRegex = regexp.MustCompile("/bot|crawler|spider|crawling/i")
 
 var videoDownloadCounter = promauto.NewCounter(prometheus.CounterOpts{
 	Subsystem: "downloads",
@@ -97,25 +100,26 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	increaseCount := r.Method != "HEAD" && !crawlerUserAgentRegex.MatchString(r.UserAgent())
 	var url string
 
 	switch type_ {
 	case TypeVideo:
-		if r.Method != "HEAD" {
+		if increaseCount {
 			videoDownloadCounter.Inc()
 		}
 
 		url = fmt.Sprintf("%s/%s.mp4", os.Getenv("S3_DOWNLOAD_URL"), videoId)
 		break
 	case TypeFfmpegLog:
-		if r.Method != "HEAD" {
+		if increaseCount {
 			ffmpegLogDownloadCounter.Inc()
 		}
 
 		url = fmt.Sprintf("%s/%s.log", os.Getenv("S3_DOWNLOAD_URL"), videoId)
 		break
 	case TypeThumbnail:
-		if r.Method != "HEAD" {
+		if increaseCount {
 			thumbnailDownloadCounter.Inc()
 		}
 
