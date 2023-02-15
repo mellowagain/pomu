@@ -6,8 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"strconv"
-	"time"
 )
 
 func (app *Application) Sitemap(w http.ResponseWriter, _ *http.Request) {
@@ -64,18 +62,9 @@ func (app *Application) addVideosToSitemap(sm *stm.Sitemap) error {
 	}
 
 	for _, video := range videos {
-		length, err := strconv.ParseInt(video.Length, 10, 64)
-
-		if err != nil {
-			continue
-		}
-
-		endDate := video.Start.Add(time.Duration(length) * time.Second)
-
 		// thumbnail url
 		sm.Add(stm.URL{
 			"loc":        fmt.Sprintf("/api/download/%s/thumbnail", video.Id),
-			"lastmod":    endDate.Format("2006-01-02T12:41:45Z"),
 			"changefreq": "yearly",
 			"priority":   "0.2",
 		})
@@ -88,7 +77,6 @@ func (app *Application) addVideosToSitemap(sm *stm.Sitemap) error {
 		// video download url
 		sm.Add(stm.URL{
 			"loc":        fmt.Sprintf("/api/download/%s/video", video.Id),
-			"lastmod":    endDate.Format("2006-01-02T12:41:45Z"),
 			"changefreq": "yearly",
 			"priority":   "0.3",
 		})
@@ -96,7 +84,6 @@ func (app *Application) addVideosToSitemap(sm *stm.Sitemap) error {
 		// ffmpeg url
 		sm.Add(stm.URL{
 			"loc":        fmt.Sprintf("/api/download/%s/ffmpeg", video.Id),
-			"lastmod":    endDate.Format("2006-01-02T12:41:45Z"),
 			"changefreq": "yearly",
 			"priority":   "0.1",
 		})
