@@ -42,7 +42,7 @@ func (app *Application) SetupSearch() {
 	app.search = app.searchClient.Index(index)
 
 	// upload existing documents to the search instance
-	videos, err := allVideos(app.db)
+	videos, err := AllVideos(app.db)
 
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Warn("failed to retrieve newest version of archived videos for the search engine")
@@ -144,7 +144,7 @@ func (video *Video) asMeilisearch() (map[string]any, error) {
 	return structured, nil
 }
 
-func allVideos(db *sql.DB) ([]Video, error) {
+func AllVideos(db *sql.DB) ([]Video, error) {
 	tx, err := db.Begin()
 
 	if err != nil {

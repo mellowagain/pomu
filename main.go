@@ -124,6 +124,9 @@ func setupServer(address string, app *Application) {
 	// Prometheus
 	r.Handle("/metrics", middleware.WrapHandler("/metrics", promhttp.Handler()))
 
+	// Sitemap
+	r.Handle("/sitemap.xml", middleware.WrapHandler("/sitemap.xml", http.HandlerFunc(app.Sitemap))).Methods("GET")
+
 	// == API ==
 
 	r.HandleFunc("/api", middleware.WrapHandler("/api", http.HandlerFunc(apiOverview))).Methods("GET")
