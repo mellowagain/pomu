@@ -3,14 +3,24 @@ package video
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"pomu/hls"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/getsentry/sentry-go"
 )
+
+func logVideo(id string, err error) (entry *log.Entry) {
+	if err == nil {
+		entry = log.WithFields(log.Fields{"video_id": id})
+	} else {
+		entry = log.WithFields(log.Fields{"video_id": id, "error": err})
+	}
+	return
+}
 
 // Download downloads segments from the segments channel
 // and writes the data into writer w
@@ -34,11 +44,19 @@ func Download(id string, segments chan hls.Segment, w io.WriteCloser) {
 			return
 		}
 
+		sentry.AddBreadcrumb(&sentry.Breadcrumb{
+			Data: map[string]interface{}{
+				"segmentURL":  segment.Url,
+				"segmentTIme": segment.Time,
+			},
+			Level: sentry.LevelInfo,
+		})
+
 		req.Header.Set("User-Agent", os.Getenv("HTTP_USERAGENT"))
 
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Println("video.Download(): client.Get():", err)
+			logVideo(id, err).Error("Download failed request for segment", segment.Time, segment.Url)
 			sentry.CaptureException(err)
 			break
 		}
@@ -54,14 +72,14 @@ func Download(id string, segments chan hls.Segment, w io.WriteCloser) {
 					},
 					Level: sentry.LevelInfo,
 				})
-				log.Println("video.Download(): client.Get():", resp.StatusCode)
+				logVideo(id, nil).Error("Download failed to get segment because of status", resp.StatusCode)
 				failedSegments += 1
 				return false
 			}
 
 			n, err := io.Copy(w, resp.Body)
 			if err != nil {
-				log.Println("video.Download(): io.Copy():", err)
+				logVideo(id, err).Error("Download failed to copy segment to writer")
 				failedSegments += 1
 				sentry.AddBreadcrumb(&sentry.Breadcrumb{
 					Message: "Failed to copy segment to writer",
@@ -78,14 +96,13 @@ func Download(id string, segments chan hls.Segment, w io.WriteCloser) {
 			}
 			return true
 		}(resp) {
-			log.Println("Failed to download a segment, stopping.")
+			logVideo(id, nil).Error("Failed to download a segment")
 		}
 	}
 
 	if failedSegments > 0 {
-		sentry.CaptureMessage(fmt.Sprint("Download failed", failedSegments, "segments"))
-
+		sentry.CaptureMessage(fmt.Sprint("Download failed ", failedSegments, " segments"))
 	}
 
-	log.Println("video.Download(): done")
+	logVideo(id, nil).Info("video.Download(): done")
 }

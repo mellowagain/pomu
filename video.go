@@ -274,7 +274,7 @@ func record(request VideoRequest) (size int64, err error) {
 		}()
 
 		logVideo(request, nil).Info("Begin copying")
-		sentry.AddBreadcrumb(&sentry.Breadcrumb{Message: "copy from muxer to s3"})
+		// sentry.AddBreadcrumb(&sentry.Breadcrumb{Message: "copy from muxer to s3"})
 		size, err := io.Copy(writer, muxer)
 		if err != nil {
 			logVideo(request, err).Error("copy muxer to s3:", err)
