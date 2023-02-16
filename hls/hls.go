@@ -35,11 +35,11 @@ type RemotePlaylist interface {
 	Get() (string, error)
 }
 
-func (client *Client) log(err error, args ...any) (entry *log.Entry) {
+func (client *Client) log(err error) (entry *log.Entry) {
 	if err == nil {
-		entry = log.WithFields(log.Fields{"video_id": videoId})
+		entry = log.WithFields(log.Fields{"video_id": client.videoId})
 	} else {
-		entry = log.WithFields(log.Fields{"video_id": videoId, "error": err})
+		entry = log.WithFields(log.Fields{"video_id": client.videoId, "error": err})
 	}
 	return
 }
