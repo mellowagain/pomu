@@ -224,10 +224,13 @@ func record(request VideoRequest) (size int64, err error) {
 		return
 	}
 	// Start getting segments
-	hlsClient := hls.New()
+	hlsClient := hls.New(id)
+	defer hlsClient.Stop()
 	go func() {
 		hlsClientPlaylistSpan := span.StartChild("hls-client playlist")
 		defer hlsClientPlaylistSpan.Finish()
+		logVideo(request, nil).Info("Starting HLS Client")
+		defer logVideo(request, nil).Info("HLS Client stopped")
 		hlsClient.Playlist(&ytdlRemotePlaylist{request})
 	}()
 
@@ -239,7 +242,6 @@ func record(request VideoRequest) (size int64, err error) {
 	if err != nil {
 		log.Println(id, "Failed to start ffmpeg:", err)
 		sentry.CaptureException(err)
-		hlsClient.Stop()
 		return 0, errors.New("failed to start ffmpeg")
 	}
 	finished := make(chan struct{})
@@ -271,14 +273,14 @@ func record(request VideoRequest) (size int64, err error) {
 			log.Println(id, "s3 Upload successfully finished")
 		}()
 
-		log.Println(id, "Begin copying")
-		sentry.AddBreadcrumb(&sentry.Breadcrumb{Message: "copy from muxer to s3"})
+		logVideo(request, nil).Info("Begin copying")
+		// sentry.AddBreadcrumb(&sentry.Breadcrumb{Message: "copy from muxer to s3"})
 		size, err := io.Copy(writer, muxer)
 		if err != nil {
-			log.Println("copy muxer to s3:", err)
+			logVideo(request, err).Error("copy muxer to s3:", err)
 			sentry.CaptureException(err)
 		}
-		log.Println(id, "Finished reading from ffmpeg: ", size)
+		logVideo(request, nil).Info(id, "Finished reading from ffmpeg: ", size)
 		// NOTE(emily): Must close first before writing.
 		// sizeWritten <- size will block until its read
 		// but it wont be read until s3 finishes, which is after the writer
@@ -290,6 +292,8 @@ func record(request VideoRequest) (size int64, err error) {
 	go func() {
 		downloaderSpan := span.StartChild("downloader")
 		defer downloaderSpan.Finish()
+		logVideo(request, nil).Info("Starting segment downloader")
+		defer logVideo(request, nil).Info("Segment downloader stopped")
 		video.Download(id, hlsClient.Segments, muxer)
 	}()
 
@@ -316,7 +320,7 @@ func uploadLog(s3 *s3.Client, id string) {
 }
 
 func logVideo(request VideoRequest, err error) (entry *log.Entry) {
-	if err != nil {
+	if err == nil {
 		entry = log.WithFields(log.Fields{"video_url": request.VideoUrl})
 	} else {
 		entry = log.WithFields(log.Fields{"video_url": request.VideoUrl, "error": err})

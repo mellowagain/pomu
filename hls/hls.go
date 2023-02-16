@@ -2,10 +2,11 @@ package hls
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/groupcache/lru"
@@ -26,11 +27,21 @@ type Client struct {
 	done                bool
 	lastSeq             int
 	noChange            int
+	videoId             string
 }
 
 type RemotePlaylist interface {
 	// Get gets the playlist url
 	Get() (string, error)
+}
+
+func (client *Client) log(err error) (entry *log.Entry) {
+	if err == nil {
+		entry = log.WithFields(log.Fields{"video_id": client.videoId})
+	} else {
+		entry = log.WithFields(log.Fields{"video_id": client.videoId, "error": err})
+	}
+	return
 }
 
 func (client *Client) getPlaylistUrl(force bool, remotePlaylist RemotePlaylist) (playlistUrl string, err error) {
@@ -42,7 +53,6 @@ func (client *Client) getPlaylistUrl(force bool, remotePlaylist RemotePlaylist) 
 
 	playlistUrl, err = remotePlaylist.Get()
 	if err != nil {
-		log.Println("Failed to get playlist url:", err)
 		return
 	}
 
@@ -55,7 +65,7 @@ func (client *Client) getPlaylistUrl(force bool, remotePlaylist RemotePlaylist) 
 func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist, error) {
 	playlistUrl, err := client.getPlaylistUrl(false, remotePlaylist)
 	if err != nil {
-		log.Println("Failed to get playlist url")
+		client.log(err).Error("Failed to get playlist URL from RemotePlaylist")
 		return nil, err
 	}
 
@@ -74,7 +84,7 @@ func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist,
 			if err != nil {
 				// We weren't able to get this url for whatever reason.
 				// Try and refresh playlist url and try again
-				log.Println("try=", tries, " failed to request playlist:", err)
+				client.log(err).Warn("try=", tries, " failed to request playlist:", err)
 				tries += 1
 				return
 			}
@@ -82,7 +92,7 @@ func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist,
 
 			playlist, _, err = m3u8.DecodeFrom(resp.Body, true)
 			if err != nil {
-				log.Println("Failed to decode playlist:", err)
+				client.log(err).Warn("Failed to decode playlist")
 			}
 			return
 		}()
@@ -92,14 +102,14 @@ func (client *Client) getPlaylist(remotePlaylist RemotePlaylist) (m3u8.Playlist,
 		}
 
 		if tries > 20 {
-			log.Println("Giving up retrying playlist", err)
+			client.log(err).Error("Giving up retrying playlist, reached max retries")
 			break
 		}
 
 		// We failed, re-get playlist url and then try again
 		playlistUrl, err = client.getPlaylistUrl(true, remotePlaylist)
 		if err != nil {
-			log.Println("Failed to get playlist url")
+			client.log(err).Error("Failed to get playlist URL from RemotePlaylist")
 			return nil, err
 		}
 	}
@@ -117,7 +127,7 @@ func (client *Client) playlistFrame(start time.Time, remotePlaylist RemotePlayli
 	switch playlist := playlistVariant.(type) {
 	case *m3u8.MediaPlaylist:
 		if playlist.SeqNo == uint64(client.lastSeq) {
-			log.Println("Seq did not change", client.noChange)
+			client.log(nil).Warn("Sequence index did not change", client.noChange)
 			client.noChange += 1
 		} else {
 			client.noChange = 0
@@ -150,7 +160,7 @@ func (client *Client) playlistFrame(start time.Time, remotePlaylist RemotePlayli
 
 		return time.Duration(int64(playlist.TargetDuration * float64(time.Second))), nil
 	default:
-		log.Println("Unexpected playlist type ", playlistVariant, ", cannot download")
+		client.log(nil).Error("Unexpected playlist type ", playlistVariant, ", cannot download")
 	}
 	return 0, nil
 }
@@ -162,33 +172,32 @@ func (client *Client) Playlist(playlist RemotePlaylist) {
 	for !client.done {
 		t, err := client.playlistFrame(start, playlist)
 		if err != nil {
-			log.Println("Failed playlist frame:", err)
+			client.log(err).Error("Failed playlist frame:", err)
 			sentry.CaptureMessage(fmt.Sprint("failed playlist frame: ", err))
 			return
 		}
 
 		if t == 0 {
-			log.Println("Time to sleep is 0, done")
+			client.log(nil).Info("Time to sleep is 0, done")
 			return
 		}
 
 		if client.noChange > 40 {
-			log.Println("No change in 40 frames, playlist assumed done")
+			client.log(nil).Info("No change in 40 frames, playlist assumed done")
 			return
 		}
 
-		// log.Println("Completed frame, resting for ", t, "...")
 		time.Sleep(t)
 	}
 
-	log.Println("HLS CLient finished")
+	client.log(nil).Info("HLS CLient finished")
 }
 
 func (client *Client) Stop() {
 	client.done = true
 }
 
-func New() *Client {
+func New(id string) *Client {
 	client := http.DefaultClient
 	cache := lru.New(1000)
 
@@ -201,5 +210,6 @@ func New() *Client {
 		time.Now().Add(-20 * time.Minute),
 		false,
 		0, 0,
+		id,
 	}
 }
