@@ -88,10 +88,19 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 			continue
 		}
 
+		jsonVbr, ok := format["vbr"]
+		var vbr float64
+
+		if ok {
+			vbr = jsonVbr.(float64)
+		} else {
+			vbr = 0.0
+		}
+
 		qualities = append(qualities, VideoQuality{
 			Code:       int32(code),
 			Resolution: format["resolution"].(string),
-			Vbr:        format["vbr"].(float64),
+			Vbr:        vbr,
 			Best:       false,
 		})
 	}
