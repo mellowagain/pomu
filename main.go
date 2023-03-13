@@ -239,7 +239,7 @@ func setupSentry() {
 func checkYouTubeDl() {
 	output := new(strings.Builder)
 
-	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "--version")
+	cmd := exec.Command(os.Getenv("YT_DLP"), "--version")
 	cmd.Stdout = output
 	cmd.Stderr = output
 

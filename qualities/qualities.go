@@ -2,12 +2,14 @@ package qualities
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/url"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,9 +20,10 @@ import (
 var qualitiesCache = cache.New(4*time.Hour, 10*time.Minute)
 
 type VideoQuality struct {
-	Code       int32  `json:"code"`
-	Resolution string `json:"resolution"`
-	Best       bool   `json:"best"`
+	Code       int32   `json:"code"`
+	Resolution string  `json:"resolution"`
+	Vbr        float64 `json:"-"`
+	Best       bool    `json:"best"`
 }
 
 func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, error) {
@@ -39,13 +42,13 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 
 	output := new(strings.Builder)
 
-	cmd := exec.Command(os.Getenv("YOUTUBE_DL"), "--list-formats", url)
+	cmd := exec.Command(os.Getenv("YT_DLP"), "-j", "--list-formats", url)
 	cmd.Stdout = output
 	cmd.Stderr = output
 
 	if err := cmd.Run(); err != nil {
-		if strings.Contains(output.String(), "ERROR: This live event will begin in") ||
-			strings.Contains(output.String(), "ERROR: Premieres in") {
+		if strings.Contains(output.String(), "This live event will begin in") ||
+			strings.Contains(output.String(), "Premieres in") {
 			return []VideoQuality{{
 				Code:       -1,
 				Resolution: "Not yet started, will use best quality",
@@ -62,54 +65,55 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 
 	span.Finish()
 
-	split := strings.Split(output.String(), "\n")
-	started := false
+	stdout := output.String()
+	jsonBegin := strings.Index(stdout, "{")
+
+	type jsonMap map[string]any
+	var v jsonMap
+
+	if err := json.Unmarshal([]byte(stdout[jsonBegin:]), &v); err != nil {
+		return nil, false, errors.New("failed to parse yt-dlp output")
+	}
 
 	var qualities []VideoQuality
 
-	for _, line := range split {
-		line = strings.TrimSpace(line)
+	formats := v["formats"].([]any)
 
-		if len(line) <= 0 || strings.HasPrefix(line, "[") {
-			continue
-		}
+	for _, format := range formats {
+		format := format.(map[string]any)
 
-		if strings.HasPrefix(line, "format code") {
-			started = true
-			continue
-		}
+		code, err := strconv.Atoi(format["format_id"].(string))
 
-		if !started {
-			continue
-		}
-
-		var code int32
-		var extension string // Unused
-		var resolution string
-
-		// format code  extension  resolution note
-		// 91           mp4        256x144     269k , avc1.4d400c, 30.0fps, mp4a.40.5
-		// [0]			[1]			[2]			[3]
-
-		if _, err := fmt.Sscanf(line, "%d %s %s", &code, &extension, &resolution); err != nil {
-			sentry.CaptureException(err)
-			continue
-		}
-
-		if resolution == "audio" {
+		if err != nil {
 			continue
 		}
 
 		qualities = append(qualities, VideoQuality{
-			Code:       code,
-			Resolution: resolution,
-			Best:       strings.Contains(line, "(best)"),
+			Code:       int32(code),
+			Resolution: format["resolution"].(string),
+			Vbr:        format["vbr"].(float64),
+			Best:       false,
 		})
 	}
 
 	if len(qualities) <= 0 {
 		return nil, false, errors.New("unable to find video qualities")
 	}
+
+	highestIndex := 0
+	highestVbr := 0.0
+
+	for index, quality := range qualities {
+		if highestVbr == 0.0 {
+			highestIndex = index
+			highestVbr = quality.Vbr
+		} else if quality.Vbr > highestVbr {
+			highestIndex = index
+			highestVbr = quality.Vbr
+		}
+	}
+
+	qualities[highestIndex].Best = true
 
 	qualitiesCache.Set(videoID, qualities, 0)
 
