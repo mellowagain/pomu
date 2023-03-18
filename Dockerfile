@@ -37,10 +37,10 @@ RUN apt-get clean && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-# direct pomu dependency: youtube-dl
-RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
-RUN chmod +x /usr/local/bin/youtube-dl
-ENV YOUTUBE_DL="/usr/local/bin/youtube-dl"
+# direct pomu dependency: yt-dlp
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp
+RUN chmod +x /usr/local/bin/yt-dlp
+ENV YT_DLP="/usr/local/bin/yt-dlp"
 
 WORKDIR /app/
 
