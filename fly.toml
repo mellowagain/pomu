@@ -1,0 +1,57 @@
+# fly.toml file generated for pomu on 2023-03-18T23:49:02+01:00
+
+app = "pomu"
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "ams"
+
+[experimental]
+  auto_rollback = true
+
+[env]
+  BASE_URL = "https://pomu.fly.dev"
+  HOLODEX_ENABLE = "true"
+  HOLODEX_ORGS = "Hololive,Nijisanji,VShojo,VOMS,PRISM"
+  HOLODEX_TOPIC = "singing"
+  MEILISEARCH_ENABLED = "true"
+  MEILISEARCH_INDEX = "pomu"
+  MEILISEARCH_URL = "https://ms-042e7ae96090-1682.fra.meilisearch.io"
+  PRIMARY_REGION = "ams"
+  RESTRICT_VTUBER_SUBMISSIONS = "true"
+  S3_DOWNLOAD_URL = "https://dev-cdn.pomu.app/file/pomu-dev"
+  S3_BUCKET = "pomu-dev"
+  S3_ENDPOINT = "s3.us-west-000.backblazeb2.com"
+  S3_REGION = "us-west-000"
+  S3_USD_PER_GB_PER_MONTH = "0.005"
+
+[metrics]
+port = 8080
+path = "/metrics"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["pomu"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = 10000
+    grace_period = "5s"
+    method = "get"
+    path = "/healthz"
+    protocol = "http"
+    restart_limit = 0
+    timeout = 2000
+    tls_skip_verify = false
