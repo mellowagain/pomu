@@ -49,5 +49,5 @@ COPY --from=backend-builder /usr/src/pomu/migrations /app/migrations
 COPY --from=backend-builder /usr/src/pomu/pomu /app/
 
 EXPOSE 8080
-ENV BIND_ADDRESS="localhost:8080"
+ENV BIND_ADDRESS="0.0.0.0:8080"
 ENTRYPOINT ["/app/pomu"]
