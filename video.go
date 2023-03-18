@@ -67,7 +67,9 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 	// NOTE(emily): If the livestream has not started yet, ytdl will return 1
 	// We want to check first whether the live event WILL begin, and return the correct
 	// error
-	if strings.Contains(output.String(), "ERROR: This live event will begin in") {
+	if strings.Contains(output.String(), "This live event will begin in") ||
+		strings.Contains(output.String(), "Premieres in") ||
+		strings.Contains(output.String(), "Premiere will begin") {
 		return "", ErrorLivestreamNotStarted
 	}
 
