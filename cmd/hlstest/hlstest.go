@@ -51,7 +51,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 
 	output := new(strings.Builder)
 
-	cmd := exec.Command(os.Getenv("YT_DLP"), "-f", strconv.Itoa(int(p.Quality)), "-g", p.VideoUrl)
+	cmd := exec.Command(os.Getenv("YT_DLP"), "--force-ipv4", "-f", strconv.Itoa(int(p.Quality)), "-g", p.VideoUrl)
 	cmd.Stdout = output
 	cmd.Stderr = output
 

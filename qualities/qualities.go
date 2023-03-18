@@ -42,7 +42,7 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 
 	output := new(strings.Builder)
 
-	cmd := exec.Command(os.Getenv("YT_DLP"), "-j", "--list-formats", url)
+	cmd := exec.Command(os.Getenv("YT_DLP"), "--force-ipv4", "-j", "--list-formats", url)
 	cmd.Stdout = output
 	cmd.Stderr = output
 
