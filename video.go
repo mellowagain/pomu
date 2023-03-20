@@ -363,7 +363,7 @@ func StartRecording(app *Application, request VideoRequest) {
 			LimitRunsTo(1).
 			StartAt(time.Now().Add(RETRY_INTERVAL)).
 			Tag("Reschedule"+request.VideoUrl).
-			Do(app.scheduleVideo, metadata, id, metadata); err != nil {
+			Do(app.scheduleVideo, metadata, id, request); err != nil {
 			logVideo(request, err).Error("Failed to reschedule video")
 		}
 		return
