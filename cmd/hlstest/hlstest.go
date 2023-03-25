@@ -38,7 +38,7 @@ func (p *ytdlRemotePlaylist) Get() (string, error) {
 		// Stream was queued ahead of time, select best quality
 		qualities, _, err := qualities.GetVideoQualities(p.VideoUrl, true)
 		if err != nil {
-			log.Panicln("Whilst trying to get playlist url, was unable to get qualities for video")
+			log.Println("Whilst trying to get playlist url, was unable to get qualities for video")
 			return "", err
 		}
 		for _, quality := range qualities {
