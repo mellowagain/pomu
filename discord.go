@@ -140,8 +140,14 @@ func resolveUserWithDiscordToken(token *oauth2.Token) (string, string, string, e
 
 	name := fmt.Sprintf("%s#%s", username, discriminator)
 
-	avatarHash := responses["avatar"].(string)
-	avatarUrl := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", id, avatarHash)
+	var avatarUrl string
+
+	switch avatarHash := responses["avatar"].(type) {
+	case string:
+		avatarUrl = fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", id, avatarHash)
+	default:
+		avatarUrl = "https://cdn.discordapp.com/embed/avatars/0.png"
+	}
 
 	return id, name, avatarUrl, nil
 }
