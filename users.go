@@ -89,17 +89,21 @@ func ValidateOrCreateUser(id string, name string, avatarUrl string, provider str
 		return "", err
 	}
 
+	var redirectUrl string
+
 	if user == nil {
-		_, err := CreateUser(id, name, avatarUrl, provider, db)
-
-		if err != nil {
-			return "", err
-		}
-
-		return "/?successRegister", nil
+		redirectUrl = "/?successRegister"
 	} else {
-		return "/?success", nil
+		redirectUrl = "/?success"
 	}
+
+	_, err = CreateOrUpdateUser(id, name, avatarUrl, provider, db)
+
+	if err != nil {
+		return "", err
+	}
+
+	return redirectUrl, nil
 }
 
 func GetUser(id string, provider string, db *sql.DB) (*User, error) {
@@ -138,7 +142,7 @@ func GetUser(id string, provider string, db *sql.DB) (*User, error) {
 	return &user, nil
 }
 
-func CreateUser(id string, name string, avatarUrl string, provider string, db *sql.DB) (*User, error) {
+func CreateOrUpdateUser(id string, name string, avatarUrl string, provider string, db *sql.DB) (*User, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -148,7 +152,14 @@ func CreateUser(id string, name string, avatarUrl string, provider string, db *s
 
 	defer tx.Rollback()
 
-	statement, err := tx.Prepare("insert into users (id, name, avatar, provider) values ($1, $2, $3, $4) returning *")
+	statement, err := tx.Prepare(`
+		insert into users (id, name, avatar, provider)
+		values ($1, $2, $3, $4)
+		on conflict (id) do update set
+			name = $2,
+			avatar = $3
+		returning *
+`)
 
 	if err != nil {
 		sentry.CaptureException(err)
