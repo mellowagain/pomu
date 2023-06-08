@@ -28,6 +28,7 @@ type Video struct {
 	DownloadUrl string    `json:"downloadUrl,omitempty"` // Not actually part of the query
 	FileSize    string    `json:"fileSizeBytes,omitempty"`
 	Length      string    `json:"length,omitempty"`
+	Downloads   int32     `json:"downloads"`
 }
 
 type VideoRequest struct {
@@ -117,7 +118,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 		&video.ChannelId,
 		&video.Thumbnail,
 		&video.FileSize,
-		&video.Length)
+		&video.Length,
+		&video.Downloads)
 
 	var reschedule bool
 

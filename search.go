@@ -141,6 +141,9 @@ func (video *Video) asMeilisearch() (map[string]any, error) {
 	// meilisearch wants unix timestamp instead of rfc 3339
 	structured["start"] = video.Start.Unix()
 
+	// downloads should not be stored in Meilisearch
+	delete(structured, "downloads")
+
 	return structured, nil
 }
 
@@ -183,7 +186,8 @@ func AllVideos(db *sql.DB) ([]Video, error) {
 			&video.ChannelId,
 			&video.Thumbnail,
 			&video.FileSize,
-			&video.Length); err != nil {
+			&video.Length,
+			&video.Downloads); err != nil {
 			log.WithFields(log.Fields{"error": err}).Warn("failed to scan row into Video")
 			continue
 		}
