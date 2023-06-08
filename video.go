@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io"
 	"net/http"
 	"os"
@@ -414,4 +415,51 @@ func (app *Application) Log(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)
+}
+
+func (app *Application) DownloadCount(w http.ResponseWriter, r *http.Request) {
+	user, err := app.ResolveUserFromRequest(r)
+
+	if user == nil || err != nil {
+		http.Error(w, "please login first", http.StatusUnauthorized)
+		return
+	}
+
+	tx, err := app.db.Begin()
+
+	if err != nil {
+		sentry.CaptureException(err)
+		http.Error(w, "failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+
+	defer tx.Rollback()
+
+	variables := mux.Vars(r)
+	videoId := variables["id"]
+
+	statement, err := tx.Prepare("select downloads from videos where id = $1")
+
+	if err != nil {
+		sentry.CaptureException(err)
+		http.Error(w, "failed to prepare statement", http.StatusInternalServerError)
+		return
+	}
+
+	var count int32
+
+	if err = statement.QueryRow(videoId).Scan(&count); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "video not found", http.StatusNotFound)
+		} else {
+			sentry.CaptureException(err)
+			http.Error(w, "failed to execute query", http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	SerializeJson(w, map[string]int32{
+		"downloads": count,
+	})
 }
