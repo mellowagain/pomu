@@ -89,12 +89,6 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tx.Commit(); err != nil {
-		sentry.CaptureException(err)
-		http.Error(w, "cannot commit transaction", http.StatusInternalServerError)
-		return
-	}
-
 	if !finished && type_ != TypeThumbnail {
 		http.Error(w, "video not yet finished", http.StatusBadRequest)
 		return
@@ -106,7 +100,11 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 	switch type_ {
 	case TypeVideo:
 		if increaseCount {
+			// update prometheus metrics
 			videoDownloadCounter.Inc()
+
+			// update our own per-video download counter, ignoring any errors if any occur
+			_, _ = tx.Exec("update videos set downloads = downloads + 1 where id = $1", videoId)
 		}
 
 		url = fmt.Sprintf("%s/%s.mp4", os.Getenv("S3_DOWNLOAD_URL"), videoId)
@@ -125,6 +123,11 @@ func (app *Application) VideoDownload(w http.ResponseWriter, r *http.Request) {
 
 		url = thumbnail
 		break
+	}
+
+	if err := tx.Commit(); err != nil {
+		// only log the sentry error, don't actually exit early
+		sentry.CaptureException(err)
 	}
 
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
