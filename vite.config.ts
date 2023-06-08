@@ -8,7 +8,14 @@ export default defineConfig({
       usePolling: true
     }
   },
-  plugins: [svelte()],
+  plugins: [svelte({
+    onwarn: (warning, handler) => {
+      if (warning.code.startsWith('a11y-'))
+        return;
+
+      handler(warning);
+    }
+  })],
   optimizeDeps: {
     exclude: ['pomu']
   }
