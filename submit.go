@@ -28,7 +28,7 @@ type Video struct {
 	DownloadUrl string    `json:"downloadUrl,omitempty"` // Not actually part of the query
 	FileSize    string    `json:"fileSizeBytes,omitempty"`
 	Length      string    `json:"length,omitempty"`
-	Downloads   int32     `json:"downloads"`
+	Downloads   int32     `json:"-"`
 }
 
 type VideoRequest struct {
