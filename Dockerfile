@@ -17,7 +17,7 @@ WORKDIR /usr/src/pomu
 COPY . .
 
 # build backend
-RUN ./build.sh
+RUN chmod +x build.sh && ./build.sh
 
 FROM ubuntu:jammy
 
