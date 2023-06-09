@@ -9,8 +9,8 @@
         Modal,
         OutboundLink,
         Row,
-        SkeletonText,
-        Tile, TooltipDefinition,
+        SkeletonText, Tag,
+        Tile, Tooltip, TooltipDefinition,
         TooltipIcon,
         UnorderedList,
     } from "carbon-components-svelte";
@@ -22,11 +22,12 @@
         Information,
         UserMultiple,
     } from "carbon-icons-svelte";
-    import type { VideoInfo } from "./video";
+    import type { VideoDownload, VideoInfo } from "./video";
     import VideoCountdown from "./VideoCountdown.svelte";
     import { humanizeFileSize } from "./video";
     import VideoLog from "./VideoLog.svelte";
     import type { User } from "./api";
+    import { SearchMetadata } from "./search";
 
     export let info: VideoInfo;
 
@@ -44,6 +45,13 @@
         if (result.status == 404) throw 404;
         return;
     };
+
+    async function downloadsAmount(): Promise<number> {
+        let results = await fetch(`/api/video/${info.id}/downloads`);
+        let json: VideoDownload = await results.json();
+
+        return json.downloads;
+    }
 
     async function submittersToUsers(submitters: string[]): Promise<User[]> {
         let results: User[] = [];
@@ -119,6 +127,12 @@
                     <TooltipDefinition tooltipText="{startDate.toDateString()} {startDate.toTimeString()}">
                         Streamed {dayjs(info.scheduledStart).fromNow()}
                     </TooltipDefinition>
+
+                    {#await downloadsAmount() then downloadCount}
+                        <Tooltip hideIcon triggerText="{downloadCount} Downloads">
+                            <p>Downloads are counted globally across all pomu.app users</p>
+                        </Tooltip>
+                    {/await}
                 {/if}
             </h5>
         </Column>

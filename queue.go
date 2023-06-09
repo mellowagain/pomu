@@ -49,7 +49,8 @@ func (app *Application) getQueue() (videos []Video, err error) {
 			&video.ChannelId,
 			&video.Thumbnail,
 			&video.FileSize,
-			&video.Length); err != nil {
+			&video.Length,
+			&video.Downloads); err != nil {
 			sentry.CaptureException(err)
 			log.Println("Error scanning videos:", err)
 			continue

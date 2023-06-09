@@ -37,3 +37,7 @@ export interface HistoryResponse {
     videos: VideoInfo[],
     totalItems: number
 }
+
+export interface VideoDownload {
+    downloads: number
+}

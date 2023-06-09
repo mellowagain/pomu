@@ -94,6 +94,15 @@ components:
             - google
             - discord
 
+  parameters:
+    videoId:
+      name: videoId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: Video ID of the video which you want to download `type` from
+
 paths:
   /:
     get:
@@ -349,14 +358,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/user"
+  /video/{videoId}/downloads:
+    parameters:
+      - $ref: "#/components/parameters/videoId"
+    get:
+      operationId: DownloadCount
+      description: Get the amount of downloads for the requested video
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - downloads
+                properties:
+                  downloads:
+                    type: integer
+                    description: The total amount of times this video has been downloaded
   /download/{videoId}/{type}:
     parameters:
-      - name: videoId
-        in: path
-        required: true
-        schema:
-          type: string
-          description: Video ID of the video which you want to download `type` from
+      - $ref: "#/components/parameters/videoId"
       - name: type
         in: path
         required: true

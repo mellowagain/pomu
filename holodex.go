@@ -58,7 +58,8 @@ func QueueUpcomingStreams(app *Application) {
 				&video.ChannelId,
 				&video.Thumbnail,
 				&video.FileSize,
-				&video.Length)
+				&video.Length,
+				&video.Downloads)
 
 			// Video already exists in db, skip it
 			if err == nil {

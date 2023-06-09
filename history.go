@@ -60,7 +60,7 @@ func (app *Application) GetHistory(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var video Video
 
-		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished, &video.Title, &video.ChannelName, &video.ChannelId, &video.Thumbnail, &video.FileSize, &video.Length); err != nil {
+		if err := rows.Scan(&video.Id, pq.Array(&video.Submitters), &video.Start, &video.Finished, &video.Title, &video.ChannelName, &video.ChannelId, &video.Thumbnail, &video.FileSize, &video.Length, &video.Downloads); err != nil {
 			sentry.CaptureException(err)
 			continue
 		}

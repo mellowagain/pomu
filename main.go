@@ -144,7 +144,11 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/api/history", middleware.WrapHandler("/api/history", http.HandlerFunc(app.GetHistory))).Methods("GET")
 	r.HandleFunc("/api/search", middleware.WrapHandler("/api/search", http.HandlerFunc(SearchMetadata))).Methods("GET")
 
+	// Specific video
+	r.HandleFunc("/api/video/{id}/downloads", middleware.WrapHandler("/api/video/{id}/downloads", http.HandlerFunc(app.DownloadCount))).Methods("GET")
+
 	// Downloads
+	// TODO: move this into the /api/video group, smth like /api/video/{id}/download/{type}
 	r.HandleFunc("/api/download/{id}/{type}", middleware.WrapHandler("/api/download/{id}/{type}", http.HandlerFunc(app.VideoDownload))).Methods("GET", "HEAD")
 
 	// Metrics
