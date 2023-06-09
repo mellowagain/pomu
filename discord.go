@@ -138,7 +138,14 @@ func resolveUserWithDiscordToken(token *oauth2.Token) (string, string, string, e
 	username := responses["username"].(string)
 	discriminator := responses["discriminator"].(string)
 
-	name := fmt.Sprintf("%s#%s", username, discriminator)
+	var name string
+
+	// special handling for discord username update may/june 2023: https://discord.com/blog/usernames
+	if discriminator == "0" {
+		name = username
+	} else {
+		name = fmt.Sprintf("%s#%s", username, discriminator)
+	}
 
 	var avatarUrl string
 
