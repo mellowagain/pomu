@@ -168,7 +168,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 			&video.ChannelId,
 			&video.Thumbnail,
 			&video.FileSize,
-			&video.Length); err != nil {
+			&video.Length,
+			&video.Downloads); err != nil {
 			sentry.CaptureException(err)
 			http.Error(w, "failed to create new video", http.StatusInternalServerError)
 			return
@@ -195,7 +196,8 @@ func (app *Application) SubmitVideo(w http.ResponseWriter, r *http.Request) {
 					&video.ChannelId,
 					&video.Thumbnail,
 					&video.FileSize,
-					&video.Length); err != nil {
+					&video.Length,
+					&video.Downloads); err != nil {
 				sentry.CaptureException(err)
 				log.Println(err)
 				http.Error(w, "failed to update existing video", http.StatusInternalServerError)

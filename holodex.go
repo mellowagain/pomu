@@ -121,7 +121,8 @@ func QueueUpcomingStreams(app *Application) {
 				&video.ChannelId,
 				&video.Thumbnail,
 				&video.FileSize,
-				&video.Length); err != nil {
+				&video.Length,
+				&video.Downloads); err != nil {
 				tx.Rollback()
 				log.Printf("failed to get video for %s\n", stream.Id)
 				sentry.CaptureException(err)
