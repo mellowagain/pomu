@@ -158,8 +158,6 @@ func ParseVideoID(videoUrl string) string {
 			// https://youtube.com/live/m7Mzgmpr-Qc
 			parts := strings.Split(parsedUrl.Path[1:], "/")
 			return parts[len(parts)-1]
-		} else {
-			return ""
 		}
 	}
 
