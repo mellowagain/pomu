@@ -9,15 +9,8 @@ jobs:
     name: Check whenever dev.pomu.app is not currently archiving
     runs-on: ubuntu-latest
     steps:
-      - name: Install jq
-        run: sudo apt install -y jq
       - name: Check if any streams are currently being archived
-        run: |
-          curl https://dev.pomu.app/api/history | jq -r ".[] | select((.scheduledStart | fromdate < now) and (.finished == false))" | grep -q .
-          if [ $? -eq 0 ]; then
-              echo "::error title=Streams found in queue::There are currently livestreams being archived. Automatic deploy cancelled."
-              exit 1
-          fi
+        run: ! curl https://dev.pomu.app/api/queue | jq -r ".[] | select((.scheduledStart | fromdate < now) and (.finished == false))" | grep -q .
   deploy:
     runs-on: ubuntu-latest
     needs: check-queue-available
