@@ -143,13 +143,24 @@ func isValidUrl(videoUrl string) bool {
 func ParseVideoID(videoUrl string) string {
 	parsedUrl, _ := url.Parse(videoUrl)
 
-	switch strings.TrimPrefix(parsedUrl.Host, "www.") {
+	removeWww := strings.TrimPrefix(parsedUrl.Host, "www.")
+	removeM := strings.TrimPrefix(removeWww, "m.")
+
+	switch removeM {
 	case "youtu.be":
-		// https://youtu.be/2naTB5J0jfI
+		// https://youtu.be/m7Mzgmpr-Qc
 		return parsedUrl.Path[1:]
 	case "youtube.com":
-		// https://www.youtube.com/watch?v=2naTB5J0jfI
-		return parsedUrl.Query().Get("v")
+		if parsedUrl.Path == "/watch" {
+			// https://youtube.com/watch?v=m7Mzgmpr-Qc
+			return parsedUrl.Query().Get("v")
+		} else if strings.HasPrefix(parsedUrl.Path, "/live") {
+			// https://youtube.com/live/m7Mzgmpr-Qc
+			parts := strings.Split(parsedUrl.Path[1:], "/")
+			return parts[len(parts)-1]
+		} else {
+			return ""
+		}
 	}
 
 	sentry.CaptureMessage("Failed to parse video url \"" + videoUrl + "\" into video id")
