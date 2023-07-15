@@ -36,7 +36,6 @@ path = "/metrics"
 [[services]]
   protocol = "tcp"
   internal_port = 8080
-  processes = ["pomu"]
 
   [[services.ports]]
     port = 80
