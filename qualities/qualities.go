@@ -83,7 +83,13 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 	for _, format := range formats {
 		format := format.(map[string]any)
 
-		code, err := strconv.Atoi(format["format_id"].(string))
+		formatId, ok := format["format_id"].(string)
+
+		if !ok {
+			continue
+		}
+
+		code, err := strconv.Atoi(formatId)
 
 		if err != nil {
 			continue
