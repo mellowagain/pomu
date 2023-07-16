@@ -99,7 +99,12 @@ func GetVideoQualities(url string, ignoreCache bool) ([]VideoQuality, bool, erro
 		var vbr float64
 
 		if ok {
-			vbr = jsonVbr.(float64)
+			switch jsonVbr.(type) {
+			case float64:
+				vbr = jsonVbr.(float64)
+			default:
+				continue
+			}
 		} else {
 			vbr = 0.0
 		}
