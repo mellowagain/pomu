@@ -16,7 +16,12 @@ switch (window.location.pathname) {
         currentOpenedPage = Page.History;
         break;
     default:
-        currentOpenedPage = Page.Video;
+        if (window.location.pathname.startsWith("/archive/")) {
+            currentOpenedPage = Page.History;
+        } else {
+            currentOpenedPage = Page.Video;
+        }
+
         break;
 }
 

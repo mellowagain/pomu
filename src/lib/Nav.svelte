@@ -24,7 +24,13 @@
                 history.pushState({currentPage: value}, "", `${window.location.origin}/queue`);
                 break;
             case Page.History:
-                history.pushState({currentPage: value}, "", `${window.location.origin}/history`);
+                if (window.location.pathname.startsWith("/archive/")) {
+                    const videoId = window.location.pathname.split("/")[2];
+                    history.pushState({currentPage: value}, "", `${window.location.origin}/archive/${videoId}`);
+                } else {
+                    history.pushState({currentPage: value}, "", `${window.location.origin}/history`);
+                }
+
                 break;
             default:
                 // TODO: Display 404

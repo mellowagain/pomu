@@ -1,7 +1,7 @@
 <script lang="ts">
     import {
         Button,
-        Column,
+        Column, CopyButton,
         ImageLoader,
         InlineNotification,
         Link,
@@ -28,6 +28,7 @@
     import VideoLog from "./VideoLog.svelte";
     import type { User } from "./api";
     import { SearchMetadata } from "./search";
+    import { showNotification } from "./notifications";
 
     export let info: VideoInfo;
 
@@ -101,6 +102,17 @@
         return results;
     }
 
+    function copyArchiveToClipboard() {
+        navigator.clipboard.writeText(`${window.location.origin}/archive/${info.id}`);
+
+        showNotification({
+            title: "Copied permalink to clipboard",
+            description: "",
+            timeout: 5000,
+            kind: "success"
+        });
+    }
+
     let submittersModal = false;
 </script>
 
@@ -115,6 +127,11 @@
             <Link href="https://youtu.be/{info.id}" target="_blank">
                 <h4>{info.title}</h4>
             </Link>
+
+            <copy-container>
+                <h4 on:click={copyArchiveToClipboard}>#</h4>
+            </copy-container>
+
             <br />
             <h5>
                 <OutboundLink
@@ -234,5 +251,17 @@
     }
     buttons {
         display: block;
+    }
+
+    copy-container {
+        color: gray;
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    copy-container:hover {
+        color: white;
     }
 </style>

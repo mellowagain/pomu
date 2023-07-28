@@ -76,7 +76,7 @@ func (app *Application) addVideosToSitemap(sm *stm.Sitemap) error {
 
 		// video download url
 		sm.Add(stm.URL{
-			"loc":        fmt.Sprintf("/api/download/%s/video", video.Id),
+			"loc":        fmt.Sprintf("/archive/%s", video.Id),
 			"changefreq": "yearly",
 			"priority":   "0.3",
 		})

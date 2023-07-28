@@ -38,6 +38,10 @@
     let queue = requestQueue();
 </script>
 
+<svelte:head>
+    <title>Queue - pomu.app</title>
+</svelte:head>
+
 <Row>
     <h1>
         Queue

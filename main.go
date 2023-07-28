@@ -116,6 +116,7 @@ func setupServer(address string, app *Application) {
 	r.HandleFunc("/", middleware.WrapHandler("/", http.HandlerFunc(serveIndex))).Methods("GET")
 	r.HandleFunc("/queue", middleware.WrapHandler("/queue", http.HandlerFunc(serveIndex))).Methods("GET")
 	r.HandleFunc("/history", middleware.WrapHandler("/history", http.HandlerFunc(serveIndex))).Methods("GET")
+	r.HandleFunc("/archive/{id}", middleware.WrapHandler("/archive/{id}", http.HandlerFunc(serveIndex))).Methods("GET")
 
 	// Static resources
 	fileServer := http.FileServer(http.Dir("./dist/assets"))

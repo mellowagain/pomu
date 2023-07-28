@@ -12,7 +12,7 @@
     import SkeletonVideoEntry from "./SkeletonVideoEntry.svelte";
     import type { HistoryResponse, VideoInfo } from "./video";
     import VideoEntry from "./VideoEntry.svelte";
-    import { onDestroy } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import type { SearchMetadata } from "./search";
     import { delay } from "./api.js";
     import { MeiliSearch, SearchResponse } from "meilisearch";
@@ -20,6 +20,9 @@
     let sorting = "desc";
     let page = 1;
     let limit = 25;
+
+    $: title = "History - pomu.app";
+    let onlyOneForArchivePage = false;
 
     let searchValue = "";
     let lastSearch: SearchResponse<Partial<VideoInfo>> = null;
@@ -73,10 +76,14 @@
             sort: ["scheduledStart:desc"],
             page: page,
             offset: offset,
-            hitsPerPage: limit,
+            hitsPerPage: onlyOneForArchivePage ? 1 : limit,
         }, {
             signal: abortController.signal
         });
+
+        if (onlyOneForArchivePage) {
+            onlyOneForArchivePage = false;
+        }
 
         // fix up download urls (as they are not populated, hence the `Partial` in `Partial<VideoInfo>`
         search.hits.forEach((part, index, array) => {
@@ -95,8 +102,32 @@
 
     onDestroy(() => abortController.abort());
 
+    if (window.location.pathname.startsWith("/archive/")) {
+        searchValue = window.location.pathname.substring("/archive/".length);
+
+        onMount(async () => {
+            let data = await requestMeilisearchData();
+
+            if (!data.enabled) {
+                return;
+            }
+
+            onlyOneForArchivePage = true;
+            let search = await startSearch();
+
+            if ((search.estimatedTotalHits ?? search.totalHits) >= 1) {
+                let hit = search.hits[0];
+                title = `${hit.title} by ${hit.channelName} - archived on pomu.app`;
+            }
+        });
+    }
+
     let history = requestHistory();
 </script>
+
+<svelte:head>
+    <title>{title}</title>
+</svelte:head>
 
 <Grid>
     <Row>
