@@ -306,7 +306,8 @@ func (app *Application) restartRecording() {
 			continue
 		}
 
-		app.scheduleVideo(videoMetadata, video.Id, VideoRequest{
+		// ignore any scheduling errors
+		_ = app.scheduleVideo(videoMetadata, video.Id, VideoRequest{
 			VideoUrl: fmt.Sprintf("https://youtu.be/%s", video.Id),
 			// Use 0 to auto-pick best quality
 			Quality: 0,

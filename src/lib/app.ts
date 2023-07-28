@@ -6,7 +6,7 @@ export enum Page {
     History,
 }
 
-let currentOpenedPage = Page.Video;
+let currentOpenedPage;
 
 switch (window.location.pathname) {
     case "/queue":

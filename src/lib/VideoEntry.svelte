@@ -1,7 +1,7 @@
 <script lang="ts">
     import {
         Button,
-        Column, CopyButton,
+        Column,
         ImageLoader,
         InlineNotification,
         Link,
@@ -9,7 +9,7 @@
         Modal,
         OutboundLink,
         Row,
-        SkeletonText, Tag,
+        SkeletonText,
         Tile, Tooltip, TooltipDefinition,
         TooltipIcon,
         UnorderedList,
@@ -27,7 +27,6 @@
     import { humanizeFileSize } from "./video";
     import VideoLog from "./VideoLog.svelte";
     import type { User } from "./api";
-    import { SearchMetadata } from "./search";
     import { showNotification } from "./notifications";
 
     export let info: VideoInfo;
@@ -102,8 +101,8 @@
         return results;
     }
 
-    function copyArchiveToClipboard() {
-        navigator.clipboard.writeText(`${window.location.origin}/archive/${info.id}`);
+    async function copyArchiveToClipboard() {
+        await navigator.clipboard.writeText(`${window.location.origin}/archive/${info.id}`);
 
         showNotification({
             title: "Copied permalink to clipboard",
@@ -128,9 +127,11 @@
                 <h4>{info.title}</h4>
             </Link>
 
-            <copy-container>
-                <h4 on:click={copyArchiveToClipboard}>#</h4>
-            </copy-container>
+            {#if info.finished}
+                <copy-container>
+                    <h4 on:click={copyArchiveToClipboard}>#</h4>
+                </copy-container>
+            {/if}
 
             <br />
             <h5>
@@ -249,6 +250,7 @@
     info-container {
         position: relative;
     }
+
     buttons {
         display: block;
     }
